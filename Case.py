@@ -22,7 +22,11 @@ class Case:
 
     def __lt__(self,rsub):
         #__le__
-        self.env = rsub.getEnv() 
+        if isinstance(rsub,Do):
+            self.env = rsub.getEnv() 
+            # add type check pass some bad 
+        else:
+            return
         if self.env.has_key(self._var):
             return self.env[self._var]
         else:
@@ -56,7 +60,10 @@ class Of:
 
 class Do:
     def __init__(self,*DoArgs):
-        self.DoArgs = map(lambda x:x.getEnv(),list(DoArgs))
+        self.DoArgs = map(lambda x: x.getEnv() if isinstance(x,Of) else None,list(DoArgs))
+        self.DoArgs = filter(lambda x: x != None,self.DoArgs)
+        # add type check pass some bad 
+        print self.DoArgs
         self._env = {"otherwise":"Nothing"}
         for i in self.DoArgs:
             self._env = dict(self._env.items()+i.items())
