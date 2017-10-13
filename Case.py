@@ -63,7 +63,7 @@ class Do:
         self.DoArgs = map(lambda x: x.getEnv() if isinstance(x,Of) else None,list(DoArgs))
         self.DoArgs = filter(lambda x: x != None,self.DoArgs)
         # add type check pass some bad 
-        print self.DoArgs
+        #print self.DoArgs
         self._env = {"otherwise":"Nothing"}
         for i in self.DoArgs:
             self._env = dict(self._env.items()+i.items())
@@ -101,5 +101,9 @@ def test():
                            Of(2) <= "this b",) <= "this otherwise")
     #print (Of(lambda a:a) <= 'c' ).getEnv().items()
     #print Case('a') <- Do(Of('c') <= "some")
-
+    def test1(some):
+        tmp = Case(some) <- ( Do (Of(233) <= "233") )
+        print tmp
+        return tmp
+    print test1(233)
 #test()
