@@ -95,4 +95,4 @@ def test():
     #print (Of(lambda a:a) <= 'c' ).getEnv().items()
     #print Case('a') <- Do(Of('c') <= "some")
 
-test()
+#test()
