@@ -2,7 +2,7 @@ def _f(x): pass
 fnType = type(_f)
 class Curry:
     def __init__(self,fn):
-        assert type(fn) == fnType,"Curry({}) not is functions".format(fn)
+        assert type(fn) == fnType,"CurryError {} not is functions".format(fn)
         self._fn = fn
         self._co = self._fn.func_code
         self._argcount = self._co.co_argcount # arg count :: int
@@ -15,8 +15,14 @@ class Curry:
         # self._body = 'apply(fn,{}'.format(map(str,self._args))
         self.body_args =  self.make_strlst(self._args)
         self._body = 'apply(self._fn,{})'.format(self.body_args)
-        self.curry_func = eval(self.maker(self._args),locals())
-        print self.maker(self._args)
+        # 'self._fn(*{})'.format(self.body_args)
+        self._tmp = self.maker(self._args)
+        self.curry_func = eval(self._tmp,locals())
+        #print self._tmp
+    def __repr__(self):
+        return "< {n} {v} >".format(n=self.__class__.__name__,
+                                    v="( {fn} {arg} )".format(fn=self._fn,arg=self._args)
+                                    )
     def make_strlst(self,lst_str):
         return '[ ' + self.lst2str(lst_str) + ' ]'
 
@@ -40,7 +46,11 @@ class Curry:
             return tmp
         return Curry(tmp)
 
+    def __call__(self,arg):
+        return self.__lshift__(arg)
+        
 @Curry
 def abc(a,b):
     return a + b
 print abc << 1 << 2 
+print abc
