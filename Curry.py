@@ -1,5 +1,6 @@
 def _f(x): pass
 fnType = type(_f)
+
 class Curry:
     def __init__(self,fn):
         assert type(fn) == fnType,"CurryError {} not is functions".format(fn)
@@ -45,7 +46,6 @@ class Curry:
         if type(tmp) != fnType:
             return tmp
         return Curry(tmp)
-
     def __call__(self,arg):
         return self.__lshift__(arg)
         
