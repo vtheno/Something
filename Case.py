@@ -4,7 +4,6 @@
 example: 
 >> c = lambda a:a
 >> Case(c) <- Do( Of(c) <= "this is c" ) # when
-
 # "this is c"
 >> Case(c) <- Do( Of(a) <= "this is a",
                   Of(c) <= "this is c",

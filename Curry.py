@@ -54,3 +54,9 @@ def abc(a,b):
     return a + b
 print abc << 1 << 2 
 print abc << 1
+print abc(233)
+
+# Uncurry 的话 进行递归展开计算出参数个数
+# 用dir去追踪命名空间... 追踪源码
+# 类似py的object hasekll的类型类 lisp的风格
+# 这个语言不提供任何函数,只提供定义
