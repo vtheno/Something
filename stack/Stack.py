@@ -183,8 +183,8 @@ def test():
     L = {}
     i = Interpreter(C)
     i.excute()
-    print '_________________'
-    print i.machine_stack,i.machine_reg
+    #print '_________________'
+    #print i.machine_stack,i.machine_reg
     
 test()
 def todo():
