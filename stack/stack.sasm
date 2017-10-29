@@ -3,10 +3,10 @@
     store 0
     push 1
     store 1
-#   label s2    
-1
+#   label s2
+s1   
     load 0
-    jz 2
+    jz s2
     load 1
     load 0
     mul
@@ -15,8 +15,8 @@
     push 1
     sub
     store 0
-    jmp 1
-2
+    jmp s1
+s2
     load 1
-    print
+    show
     halt

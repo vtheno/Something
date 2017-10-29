@@ -53,10 +53,8 @@ class Interpreter:
         temp("sub","self.push((lambda num1,num2:int(num2-num1))(self.pop(),self.pop()))")
         temp("mul","self.push((lambda num1,num2:int(num1*num2))(self.pop(),self.pop()))")
         temp("div","self.push((lambda num1,num2:int(num2/num1))(self.pop(),self.pop()))")
-        #temp("mod","self.push( (lambda a,b:b%a)(self.pop(),self.pop()) )")
         temp("mod","self.push( (lambda a1,a2:a2%a1)(self.pop(),self.pop()) )")
         temp("dup","( lambda peekValue:self.push(peekValue) ) (self.machine_stack.peek())")
-        # 
         temp("swap","( lambda num1,num2:[self.push(num1),self.push(num2)][1] )(self.pop(),self.pop()) ")
         self.op = {
             'push' : self.push,# int load 
@@ -66,14 +64,14 @@ class Interpreter:
             'div' : self.div,
             'mod' : self.mod,
             'pop'  : self.pop,
-            'dup'  : self.dup,#dump
+            'dup'  : self.dup,# copy top
             'swap' : self.swap,
             'load' : self.load,
             'store': self.store, 
             'jz'   : self.jz,
             'jnz'  : self.jnz,
             'jmp'  : self.jmp,
-            'print': self.show,
+            'show': self.show,
             'halt' : self.stop,
         }
     def push(self,arg):
@@ -109,7 +107,7 @@ class Interpreter:
         #print labels
         # this need check => eq? labelname opname ,but now not
         map(self.setLabel,map(code.index,labels),map(lambda _: intOstr(_[0]) ,labels))
-        # why intOstr(_[0]) (int or str) because ,maybe lable is digit
+        # why intOstr(_[0]) (int or str) because ,maybe label is digit
         #print self.machine_labels,self.ip,self.run
         # 第一趟分析出label并记录所有label的信息
         # 第二趟才开始执行 ,
@@ -133,21 +131,36 @@ class Interpreter:
                     self.op.get(op) ()
                 else:
                     self.op.get(op)(intOstr (arg) )
-            print self.ip,line,self.machine_stack.val.values(),self.machine_reg.val.values()
+            #print self.ip,line,self.machine_stack.val.values(),self.machine_reg.val.values()
             self.ip+=1
     def jmp(self,I):
         # print "index:",self.machine_labels.val.keys()[self.machine_labels.val.values().index(I)]
-        self.ip =  self.machine_labels.val.keys()[self.machine_labels.val.values().index(I)] - 1
-        
+        try:
+            assert I in self.machine_labels.val.values()
+            self.ip =  self.machine_labels.val.keys()[self.machine_labels.val.values().index(I)] - 1
+        except AssertionError:
+            print "jmp <{i}> ERROR,{i} not define,or {i} not is label".format(i=I)
+            self.run = False
+
     def jz(self,I):
-        top = self.pop()
-        if top == 0:
-            self.ip =  self.machine_labels.val.keys()[self.machine_labels.val.values().index(I)] -1
+        try:
+            assert I in self.machine_labels.val.values()
+            top = self.pop()
+            if top == 0:
+                self.ip =  self.machine_labels.val.keys()[self.machine_labels.val.values().index(I)] -1
+        except AssertionError:
+            print "jz <{i}> ERROR,{i} not define,or {i} not is label".format(i=I)
+            self.run = False
 
     def jnz(self,I):
-        top = self.pop()
-        if top != 0:
-            self.ip =  self.machine_labels.val.keys()[self.machine_labels.val.values().index(I)] -1
+        try:
+            assert I in self.machine_labels.val.values()
+            top = self.pop()
+            if top != 0:
+                self.ip =  self.machine_labels.val.keys()[self.machine_labels.val.values().index(I)] -1
+        except AssertionError:
+            print "jnz <{i}> ERROR,{i} not define,or {i} not is label".format(i=I)
+            self.run = False
 
 
 def test():
@@ -158,7 +171,7 @@ def test():
     label name can't equal op name
     """
     with open('stack.sasm') as f:
-        buffers = filter(lambda x:x!='', map(lambda a: '' if a.startswith("#") else a.strip('\n').strip(' ').split(),f.readlines()))
+        buffers = filter(lambda x:x!='', map(lambda a: '' if a.startswith("#") else a.strip('\n').strip(' ').strip('\t').split(),f.readlines()))
         buffers = filter(lambda x:x!=[],buffers)
         C = dict(zip(range(len(buffers)),buffers))
         
