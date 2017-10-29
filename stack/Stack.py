@@ -1,5 +1,8 @@
 #coding=utf-8
 class Stack:
+    # The machines word bit pointer and other ... there just a type class ...emmmmm
+    # in c can ptr is dict(map) ?? maybe
+    # 指针的地址作为索引 指向的值作为内容
     # key is addr
     # val is value
     def __init__(self,val={},addr=-1,name=None):
