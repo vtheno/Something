@@ -1,0 +1,22 @@
+### 10! <= 10 * 9 * 7 * 8 .. * 1
+    push 10
+    store 0
+    push 1
+    store 1
+#   label s2    
+1
+    load 0
+    jz 2
+    load 1
+    load 0
+    mul
+    store 1
+    load 0
+    push 1
+    sub
+    store 0
+    jmp 1
+2
+    load 1
+    print
+    halt
