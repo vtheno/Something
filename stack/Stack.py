@@ -40,14 +40,14 @@ class Interpreter:
     
     """
     env           = locals()
-    def __init__(self,C,L):
+    def __init__(self,C):
         self.machine_stack       = Stack({},-1,"S")  # machine data stack
         self.machine_reg         = Stack({},-1,"R")  # machine store memory reg
         self.machine_code        = Stack(C ,-1,"C")  # instruction memory # code excute in 
-        self.machine_labels      = Stack(L ,-1,"L")  # key is line ,value is label
-        self.ip = 0
-        self.run = True
-        def temp(name,body):
+        self.machine_labels      = Stack({} ,-1,"L")  # key is line ,value is label
+        self.ip = 0                                  # instruction pointer 
+        self.run = True                              # run flag
+        def temp(name,body):                         # template generate
             return self.template(name,body,self.env)
         temp("add","self.push((lambda num1,num2:int(num1+num2))(self.pop(),self.pop()))")
         temp("sub","self.push((lambda num1,num2:int(num2-num1))(self.pop(),self.pop()))")
@@ -94,6 +94,7 @@ class Interpreter:
         print top
         return top
     def stop(self):
+        # need add 对象重生(new)
         self.run = False
     def setLabel(self,ip,name):
         self.machine_labels.val[ip] = name
@@ -108,6 +109,7 @@ class Interpreter:
         # this need check => eq? labelname opname ,but now not
         map(self.setLabel,map(code.index,labels),map(lambda _: intOstr(_[0]) ,labels))
         # why intOstr(_[0]) (int or str) because ,maybe label is digit
+        # machine_labels 由这一趟生成,这一步的 intOstr 之类的可以分离出去 在machine_code里做好类型
         #print self.machine_labels,self.ip,self.run
         # 第一趟分析出label并记录所有label的信息
         # 第二趟才开始执行 ,
@@ -176,9 +178,12 @@ def test():
         C = dict(zip(range(len(buffers)),buffers))
         
     L = {}
-    i = Interpreter(C,L)
+    i = Interpreter(C)
     i.excute()
     print '_________________'
     print i.machine_stack,i.machine_reg
     
 test()
+def todo():
+    # create parser and make ast
+    pass
