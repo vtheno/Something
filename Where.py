@@ -3,19 +3,18 @@
 #  _("""
 #  print (a if a>b else b)
 #  """) | where(a = 1,b = 2)
-  
-def make_where(env):
-    assert isinstance(env,dict),"TypeError"
+# 
+def where(env = None,**maps):
+    env = {} if env == None else env
+    # 确保每次调用未初始值不延续到下一次调用
+    assert isinstance(env,dict) and isinstance(maps,dict),"TypeError"
     def set_(name,val):
-        # 无法用 globals()=dict(globals().items()+env.items())
+        # 无法用 globals()=dict(globals().items()+env.items()),写成函数的原因是匿名函数内 "不直接支持" 赋值
         env[name] = val
         return True
-    def where(**maps):
-        assert isinstance(maps,dict),"TypeError"
-        #print " e is globals() ",e == globals()
-        map(set_,maps.keys(),maps.values())
-        return env
-    return where
+    map(set_,maps.keys(),maps.values())
+    return env
+
 class _:
     def __init__(self,*args): 
         self.args = list(args)
@@ -24,7 +23,8 @@ class _:
         assert isinstance(env,dict),"TypeError"
         def excute(co):
             #exec co in self.env
-            return eval(co,self.env) # 此处的eval比较简洁没有其它内置
+            # 此处的eval比较简洁没有其它内置
+            return eval(co,self.env)
         self.env = env
         map(excute,self.cos)
         #print self.env.keys()
@@ -39,17 +39,17 @@ class _:
 # 除非有办法改 paser 的报错 不然还是绕不过去
 def test():
     myenv = {}#globals() or {}
-    where = make_where(myenv)
-    a = 233
     #print where(b = 1 if a else 2)
     _("""
 a = 233
 c = lambda id:id
 print a,b,c
-    """) | where(b = 1,c=a)
+print locals()
+    """) | where(b = 1)
     # 调用结果就是在 源传入环境上 调用 名称
     _("""
 print a > b and a or b
-    """) | where(a = 1,b = 2)
+print locals()
+    """) | where(b = 2,a = 2) # 类似 let 局部 还没法实现let*
     # 这里遇到了和 Case_exec.py 一样的缩进问题...
 test()
