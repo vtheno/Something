@@ -3,7 +3,8 @@
 #  _("""
 #  print (a if a>b else b)
 #  """) | where(a = 1,b = 2)
-# 
+#
+
 def where(env = None,**maps):
     env = {} if env == None else env
     # 确保每次调用未初始值不延续到下一次调用
@@ -57,7 +58,13 @@ print locals()
     tmp = Let("""
 print a > b and a or b
 print locals()
-    """) | where(b = 233,a = 213) # 类似 let 局部 还没法实现let*
+    ""","""
+print "a:",a
+print "b:",b
+"""
+          ) | where(b = (lambda fn:fn)(66) ,
+                    a = 213) # 类似 let 局部 还没法实现let*
     print tmp.a,tmp.b
     # 这里遇到了和 Case_exec.py 一样的缩进问题...
-test()
+
+__all__ = ['where','maps','Let']
