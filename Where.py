@@ -14,8 +14,15 @@ def where(env = None,**maps):
         return True
     map(set_,maps.keys(),maps.values())
     return env
+class maps(dict):
+    __init__ = dict.__init__
+    def __getattr__(self,name):
+        return self[name]
+    def __setattr__(self,name,value):
+        self[name] = value
+        return value
 
-class _:
+class Let:
     def __init__(self,*args): 
         self.args = list(args)
         self.cos  = map(lambda x:compile(x,'','exec'),self.args)
@@ -29,7 +36,7 @@ class _:
         map(excute,self.cos)
         #print self.env.keys()
         #print self.env.values()
-        return self.env
+        return maps(self.env)
 #def _(name,env):
 #    def tmp(args):
 #        print args
@@ -40,16 +47,17 @@ class _:
 def test():
     myenv = {}#globals() or {}
     #print where(b = 1 if a else 2)
-    _("""
+    Let("""
 a = 233
 c = lambda id:id
 print a,b,c
 print locals()
     """) | where(b = 1)
     # 调用结果就是在 源传入环境上 调用 名称
-    _("""
+    tmp = Let("""
 print a > b and a or b
 print locals()
-    """) | where(b = 2,a = 2) # 类似 let 局部 还没法实现let*
+    """) | where(b = 233,a = 213) # 类似 let 局部 还没法实现let*
+    print tmp.a,tmp.b
     # 这里遇到了和 Case_exec.py 一样的缩进问题...
 test()
