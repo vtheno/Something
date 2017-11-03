@@ -68,9 +68,10 @@ class TypeCheck:
         try:
             l = len(arg)
             k = len(kawg)
+            # case(0) of abs(self.argcount - (l+k))
             assert l+k == self.argcount,"input arg length {c} func arg length".format(
                 c='>' if l+k > self.argcount else '<')
-
+            # of abs(l-k) 
             if l == 0 and k == 0:
                 # 无输入参数
                 env = {}
@@ -80,7 +81,8 @@ class TypeCheck:
                     env = dict(zip(self.argnames,self.func.func_defaults))
                 r = self.func(*arg,**kawg)#eval(self.co,env)
                 r_type = self.type_maps['result']
-                    
+                return self.checkR(r,r_type)
+            # of k
             if k == 0:
                 # all arg 所有的都是未指定参数名的的参数
                 env = dict(zip(self.argnames,arg))
@@ -89,6 +91,7 @@ class TypeCheck:
                 #r = eval(self.co,env)
                 r_type = self.type_maps['result']
                 return self.checkR(r,r_type)
+            # of l
             if l == 0:
                 # all kawg 所有的都是指定参数名的参数
                 env = kawg
@@ -97,7 +100,7 @@ class TypeCheck:
                 #r = eval(self.co,env)
                 r_type = self.type_maps['result']
                 return self.checkR(r,r_type)
-
+            # of abc(self.argcount - (l+k))
             if l+k == self.co.co_argcount:
                 # 部分指定了名 的参数 部分没有指定名的参数
                 maps = set(kawg.keys())
