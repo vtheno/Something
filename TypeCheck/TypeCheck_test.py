@@ -11,10 +11,12 @@ def abc(a,b):
 def test(code,env):
     try:
         xx = compile(code,'','exec')
-        eval(xx,env)
+        print code,
+        exec xx in env#eval(xx,env)
         #print abc('a')
     except TypeError,e:
         print e
+
 @TypeCheck(result=anything,a=anything)
 def anys(a):
     return a
@@ -32,3 +34,4 @@ codes = ["print abc('a','b')",
 ]
 map(lambda x:test(x,globals()),codes)
 
+print abc

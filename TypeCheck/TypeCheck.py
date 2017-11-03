@@ -58,6 +58,12 @@ class TypeCheck:
                 continue
             assert isinstance(v,v_type) ,"arg {v} type not is {i}".format(v=i,i=self.type_maps[i])
 
+    def checkR(self,r,r_type):
+        if isinstance(r_type,Anything):
+            return r
+        assert isinstance(r,r_type),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
+        return r
+
     def excute(self,*arg,**kawg):
         try:
             l = len(arg)
@@ -74,12 +80,7 @@ class TypeCheck:
                     env = dict(zip(self.argnames,self.func.func_defaults))
                 r = self.func(*arg,**kawg)#eval(self.co,env)
                 r_type = self.type_maps['result']
-                if isinstance(r_type,Anything):
-                    return r
-                else:
-                    assert isinstance(r,r_type),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
-                    return r
-
+                    
             if k == 0:
                 # all arg 所有的都是未指定参数名的的参数
                 env = dict(zip(self.argnames,arg))
@@ -87,11 +88,7 @@ class TypeCheck:
                 r = self.func(*arg,**kawg)#eval(self.co,env)
                 #r = eval(self.co,env)
                 r_type = self.type_maps['result']
-                if isinstance(r_type,Anything):
-                    return r
-                assert isinstance(r,r_type),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
-                return r
-
+                return self.checkR(r,r_type)
             if l == 0:
                 # all kawg 所有的都是指定参数名的参数
                 env = kawg
@@ -99,10 +96,7 @@ class TypeCheck:
                 r = self.func(*arg,**kawg)#eval(self.co,env)
                 #r = eval(self.co,env)
                 r_type = self.type_maps['result']
-                if isinstance(r_type,Anything):
-                    return r
-                assert isinstance(r,r_type),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
-                return r
+                return self.checkR(r,r_type)
 
             if l+k == self.co.co_argcount:
                 # 部分指定了名 的参数 部分没有指定名的参数
@@ -115,10 +109,7 @@ class TypeCheck:
                 r = self.func(**env)#eval(self.co,env)
                 #r = eval(self.co,env)
                 r_type = self.type_maps['result']
-                if isinstance(r_type,Anything):
-                    return r
-                assert isinstance(r,r_type),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
-                return r
+                return self.checkR(r,r_type)
         except AssertionError,e:
             raise TypeError(e)
 
