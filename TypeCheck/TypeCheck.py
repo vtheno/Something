@@ -1,6 +1,8 @@
 #coding=utf-8
 # this is simple typecheck 
 class Anything:
+    __name__ = 'a'
+    def __repr__(self) : return "<type:{}>".format(self.__name__)
     pass
 anything = Anything()
 class TypeCheck:
@@ -39,7 +41,16 @@ class TypeCheck:
             raise TypeError(e)
         return self.excute
     def __repr__(self):
-        return self.func.__repr__()
+        def construct(a):
+            return "{a} -> ".format(a=a)
+        r = ''
+        for k,v in zip(self.type_maps.keys(),self.type_maps.values()):
+            if k =='result':
+                continue
+            r+=construct(v.__name__)
+        r += '{r}'.format(r=self.type_maps['result'].__name__)
+        return "  {} :: {}  ".format(self.func.__name__,r)
+
     def checkEnv(self,env):
         for i,v in zip(env.keys(),env.values()):
             v_type =self.type_maps[i]
@@ -53,6 +64,7 @@ class TypeCheck:
             k = len(kawg)
             assert l+k == self.argcount,"input arg length {c} func arg length".format(
                 c='>' if l+k > self.argcount else '<')
+
             if l == 0 and k == 0:
                 # 无输入参数
                 env = {}
