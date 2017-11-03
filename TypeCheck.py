@@ -11,7 +11,6 @@ class TypeCheck:
     """
 
     def __init__(self,*arg,**kawg):
-        import types
         self.type_maps = kawg
         print self.type_maps
         self.func = arg[0] if len(arg)>0 else None
@@ -40,6 +39,7 @@ class TypeCheck:
         try:
             if len(arg)==0 and len(kawg)==0:
                 env = {}
+                assert self.co.co_argcount == 0,"Error: func need some arg"
                 r = eval(self.co,env)
                 # print type(self.type_maps['result']),type(r)
                 assert type(r) == self.type_maps['result'],"Error: {r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
@@ -76,14 +76,14 @@ class TypeCheck:
             print e
             exit()
 
-@TypeCheck(result=tuple,a=int,b=int)
+from types import *
+@TypeCheck(result=TupleType,a=IntType,b=IntType)
 def cba(a,b):
     return (a,b)
 print cba(a=1,b=1)
 
-@TypeCheck(result=NoneType)
-def abc():
+@TypeCheck(result=NoneType,a=IntType)
+def abc(a=1):
     print "abc"
     # return None
-print abc()
-
+print abc(123)
