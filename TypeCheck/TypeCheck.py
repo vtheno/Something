@@ -39,7 +39,7 @@ class TypeCheck:
             k = len(kawg)
             assert l+k == self.argcount,"input arg length {c} func arg length".format(
                 c='>' if l+k > self.argcount else '<')
-            if len(arg)==0 and len(kawg)==0:
+            if l == 0 and k == 0:
                 # 无输入参数
                 env = {}
                 if self.func.func_defaults == None:
@@ -49,7 +49,7 @@ class TypeCheck:
                 r = eval(self.co,env)
                 assert type(r) == self.type_maps['result'],"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
                 return r
-            if len(kawg)==0:
+            if k == 0:
                 # all arg 所有的都是未指定参数名的的参数
                 env = dict(zip(self.argnames,arg))
                 for i,v in zip(env.keys(),env.values()):
@@ -57,7 +57,7 @@ class TypeCheck:
                 r = eval(self.co,env)
                 assert type(r) == self.type_maps['result'],"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
                 return r
-            if len(arg) == 0:
+            if l == 0:
                 # all kawg 所有的都是指定参数名的参数
                 env = kawg
                 for i,v in zip(env.keys(),env.values()):
@@ -65,7 +65,7 @@ class TypeCheck:
                 r = eval(self.co,env)
                 assert type(r) == self.type_maps['result'],"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
                 return r
-            if len(kawg)+len(arg) == self.co.co_argcount:
+            if l+k == self.co.co_argcount:
                 # 部分指定了名 的参数 部分没有指定名的参数
                 maps = set(kawg.keys())
                 names = set(self.argnames)
