@@ -3,10 +3,28 @@ from TypeCheck import TypeCheck
 @TypeCheck(result=TupleType,a=IntType,b=IntType)
 def cba(a,b):
     return (a,b)
-print cba(a=1,b=1)
 
-@TypeCheck(result=int,a=int)
-def abc(a):
-    print "abc"
-    return a-1
-print abc('a')
+
+@TypeCheck(result=int,a=int,b=int)
+def abc(a,b):
+    return a+b
+def test(code,env):
+    try:
+        xx = compile(code,'','exec')
+        eval(xx,env)
+        #print abc('a')
+    except TypeError,e:
+        print e
+
+codes = ["print abc('a','b')",
+         "print abc(1)",
+         "print abc(1,2)",
+         "print abc(1,2,3)",
+         "print abc(1,a=2)",
+         "print abc(1,b=2)",
+         "print abc(1,a=1,b=2)",
+         "print abc(a=1,b=2)",
+         "print abc(b=1,a=2)",
+         "print abc(a=1,b=2,c=3)",]
+map(lambda x:test(x,globals()),codes)
+

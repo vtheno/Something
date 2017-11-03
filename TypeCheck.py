@@ -35,6 +35,10 @@ class TypeCheck:
         return self.excute
     def excute(self,*arg,**kawg):
         try:
+            l = len(arg)
+            k = len(kawg)
+            assert l+k == self.argcount,"input arg length {c} func arg length".format(
+                c='>' if l+k > self.argcount else '<')
             if len(arg)==0 and len(kawg)==0:
                 # 无输入参数
                 env = {}
