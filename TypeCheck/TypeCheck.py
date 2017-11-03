@@ -41,15 +41,18 @@ class TypeCheck:
             raise TypeError(e)
         return self.excute
     def __repr__(self):
-        def construct(a):
-            return "{a} -> ".format(a=a)
-        r = ''
-        for k,v in zip(self.type_maps.keys(),self.type_maps.values()):
-            if k =='result':
-                continue
-            r+=construct(v.__name__)
-        r += '{r}'.format(r=self.type_maps['result'].__name__)
-        return "  {} :: {}  ".format(self.func.__name__,r)
+        if self.type_maps !={}:
+            def construct(a):
+                return "{a} -> ".format(a=a)
+            r = ''
+            for k,v in zip(self.type_maps.keys(),self.type_maps.values()):
+                if k =='result':
+                    continue
+                r+=construct(v.__name__)
+            r += '{r}'.format(r=self.type_maps['result'].__name__)
+            return "  {} :: {}  ".format(self.func.__name__,r)
+        else:
+            return self.func.__repr__()
 
     def checkEnv(self,env):
         for i,v in zip(env.keys(),env.values()):
