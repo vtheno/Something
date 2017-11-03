@@ -1,5 +1,5 @@
 from types import *
-from TypeCheck import TypeCheck
+from TypeCheck import TypeCheck,anything
 @TypeCheck(result=TupleType,a=IntType,b=IntType)
 def cba(a,b):
     return (a,b)
@@ -15,7 +15,10 @@ def test(code,env):
         #print abc('a')
     except TypeError,e:
         print e
-
+@TypeCheck(result=anything,a=anything)
+def anys(a):
+    return a
+print anys(anys)
 codes = ["print abc('a','b')",
          "print abc(1)",
          "print abc(1,2)",
@@ -25,6 +28,7 @@ codes = ["print abc('a','b')",
          "print abc(1,a=1,b=2)",
          "print abc(a=1,b=2)",
          "print abc(b=1,a=2)",
-         "print abc(a=1,b=2,c=3)",]
+         "print abc(a=1,b=2,c=3)",
+]
 map(lambda x:test(x,globals()),codes)
 

@@ -1,6 +1,8 @@
 #coding=utf-8
 # this is simple typecheck 
-
+class Anything:
+    pass
+anything = Anything()
 class TypeCheck:
     """
     @TypeCheck(result=int,i = int)
@@ -9,6 +11,9 @@ class TypeCheck:
     @TypeCheck(result=int)
     def abc():
         return 666
+    @TypeCheck(result=anything)
+    def abc():
+        return abc
     """
     def __init__(self,*arg,**kawg):
         self.type_maps = kawg
@@ -33,6 +38,15 @@ class TypeCheck:
         except AssertionError,e:
             raise TypeError(e)
         return self.excute
+    def __repr__(self):
+        return self.func.__repr__()
+    def checkEnv(self,env):
+        for i,v in zip(env.keys(),env.values()):
+            v_type =self.type_maps[i]
+            if isinstance(v_type,Anything):
+                continue
+            assert isinstance(v,v_type) ,"arg {v} type not is {i}".format(v=i,i=self.type_maps[i])
+
     def excute(self,*arg,**kawg):
         try:
             l = len(arg)
@@ -47,26 +61,37 @@ class TypeCheck:
                 else:
                     env = dict(zip(self.argnames,self.func.func_defaults))
                 r = self.func(*arg,**kawg)#eval(self.co,env)
-                assert isinstance(r,self.type_maps['result']),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
-                return r
+                r_type = self.type_maps['result']
+                if isinstance(r_type,Anything):
+                    return r
+                else:
+                    assert isinstance(r,r_type),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
+                    return r
+
             if k == 0:
                 # all arg 所有的都是未指定参数名的的参数
                 env = dict(zip(self.argnames,arg))
-                for i,v in zip(env.keys(),env.values()):
-                    assert isinstance(v,self.type_maps[i]) ,"arg {v} type not is {i}".format(v=i,i=self.type_maps[i])
+                self.checkEnv(env)
                 r = self.func(*arg,**kawg)#eval(self.co,env)
                 #r = eval(self.co,env)
-                assert isinstance(r,self.type_maps['result']),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
+                r_type = self.type_maps['result']
+                if isinstance(r_type,Anything):
+                    return r
+                assert isinstance(r,r_type),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
                 return r
+
             if l == 0:
                 # all kawg 所有的都是指定参数名的参数
                 env = kawg
-                for i,v in zip(env.keys(),env.values()):
-                    assert isinstance(v,self.type_maps[i]) ,"arg {v} type not is {i}".format(v=i,i=self.type_maps[i])
+                self.checkEnv(env)
                 r = self.func(*arg,**kawg)#eval(self.co,env)
                 #r = eval(self.co,env)
-                assert isinstance(r,self.type_maps['result']),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
+                r_type = self.type_maps['result']
+                if isinstance(r_type,Anything):
+                    return r
+                assert isinstance(r,r_type),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
                 return r
+
             if l+k == self.co.co_argcount:
                 # 部分指定了名 的参数 部分没有指定名的参数
                 maps = set(kawg.keys())
@@ -74,13 +99,15 @@ class TypeCheck:
                 tmpr = list(names - maps)
                 tt = dict(zip(tmpr,arg))
                 env = dict(tt.items()+kawg.items())
-                for i,v in zip(env.keys(),env.values()):
-                    assert isinstance(v,self.type_maps[i]) ,"arg {v} type not is {i}".format(v=i,i=self.type_maps[i])
-                r = self.func(*arg,**kawg)#eval(self.co,env)
+                self.checkEnv(env)
+                r = self.func(**env)#eval(self.co,env)
                 #r = eval(self.co,env)
-                assert isinstance(r,self.type_maps['result']),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
+                r_type = self.type_maps['result']
+                if isinstance(r_type,Anything):
+                    return r
+                assert isinstance(r,r_type),"{r} not is result={t}".format(t=self.type_maps['result'],r=type(r))
                 return r
         except AssertionError,e:
             raise TypeError(e)
 
-__all__ = ['TypeCheck']
+__all__ = ['TypeCheck','anything']
