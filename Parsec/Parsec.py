@@ -113,7 +113,7 @@ def then(p1,p2):
             return fail(inp)
         #r = r1
         #r+=r2
-        return succeed( mlist( *[r1,r2] )  )(rest2)
+        return succeed( mlist( r1,r2 )  )(rest2)
         #return succeed(r)(rest2)
         # this is seq  递归遍历 construct = mlist(*[r1,r2]) ,cons a ,b = mlist(a,b)
     return p
