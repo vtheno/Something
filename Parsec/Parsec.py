@@ -39,8 +39,8 @@ class mlist(object):
                 tmp[0]+=mlst.fst
                 return un_construct(mlst.snd)
         un_construct(self)
-        print tmp
-        return tmp[0]
+        #print tmp
+        return ''.join (tmp[0])
 @TypeCheck(result=mlist,string=str)
 def make_inp(string):
     xxs = list(string)
@@ -131,7 +131,12 @@ def cons(a,b):
     r = a
     rs =b
     #print "type:",type(r),type(rs),r,rs
-    return parser(a,b)
+    if isinstance(r,str):
+        if r == fail_flag:
+            return fail(rs)
+    else:
+        r = mlist(~a,mlist(None,None))
+        return succeed(r)(rs)
 def many(l_p):
     @TypeCheck(result=parser,inp=mlist)
     def p(inp):
@@ -224,8 +229,8 @@ print xthen(a,b)(make_inp("abcde"))
 print thenx(a,b)(make_inp("abcde"))
 def value(x,y):
     r = {}
-    print "type:", type(x),type(y)
-    print "x,y:",x,y
+    #print "type:", type(x),type(y)
+    #print "x,y:",x,y
     if isinstance(x,str):
         if x!="Fail":
             r['value'] = x
