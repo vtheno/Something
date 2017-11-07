@@ -18,17 +18,12 @@ class parser(object):
 class mlist(object):
     " My List"
     " mlist(1,2) :: ( 1 :: object . (2 .empty) :: mlist)"
-    def __init__(self,*arg):
-        tmp = list(arg)
-        #print tmp
-        if tmp == [] :
-            self.value = "empty"#()
-        else:
-            self.head = tmp[0]
-            self.tail = tmp[1:]
-            self.value = (self.head,mlist(*self.tail))
+    def __init__(self,fst,snd):
+        self.fst = fst
+        self.snd = snd
+        self.value = (fst,snd)
     def empty(self):
-        return self.value == "empty"
+        return self.value == (None,None) #"empty"
     def __repr__(self):
         if self.empty():
             return "empty"
@@ -36,20 +31,24 @@ class mlist(object):
     def __iter__(self):
         return iter(self.value)
     def __invert__(self):
-        tmpp = [[]]
-        def un_mlist(mlst):
+        tmp = [ [] ]
+        def un_construct(mlst):
             if mlst.empty():
                 return []
             else:
-                tmpp[0] +=mlst.head
-                return un_mlist(mlst.value[1])
-        un_mlist(self) # un_construct mlist to list # lst save in tmpp
-        return tmpp[0]
-
+                tmp[0]+=mlst.fst
+                return un_construct(mlst.snd)
+        un_construct(self)
+        print tmp
+        return tmp[0]
 @TypeCheck(result=mlist,string=str)
 def make_inp(string):
     xxs = list(string)
-    return mlist(*xxs)
+    def cons(lst):
+        if lst==[]:
+            return mlist(None,None)
+        return mlist(lst[0],cons(lst[1:]))
+    return cons(xxs)
 
 def succeed(v):
     # v -> (mlist -> parser)
@@ -132,33 +131,22 @@ def cons(a,b):
     r = a
     rs =b
     #print "type:",type(r),type(rs),r,rs
-    if isinstance(a,str):
-        return parser(a,b)
-    else:
-        tmpp = [[]]
-        def un_mlist(mlst):
-            if mlst.empty():
-                return []
-            else:
-                tmpp[0] +=mlst.head
-                return un_mlist(mlst.value[1])
-        un_mlist(a) # un_construct mlist to list # lst save in tmpp
-        return succeed(tmpp[0])(b)
-
+    return parser(a,b)
 def many(l_p):
     @TypeCheck(result=parser,inp=mlist)
     def p(inp):
+        #print inp
         return (
             ( (l_p |then| many(l_p) ) |using| cons )
             |alt|
-            succeed("") )(inp) # if l_p(inp) |then| many(l_p)  fail then succeed
+            succeed( mlist(None,None) ) )(inp) # if l_p(inp) |then| many(l_p)  fail then succeed
     return p
 
 def some(l_p):
     # l_p like literal 
     @TypeCheck(result=parser,inp=mlist)
     def p(inp):
-        return (l_p |then| many(l_p))(inp)
+        return  ( (l_p |then| many(l_p)) |using| cons )(inp)
     return p
 
 lst = make_inp("abcde")
@@ -176,9 +164,9 @@ print ( (a |alt| b) |alt| c) (lst)
 print (a |then| b)(lst)
 print (a |then| b |then| c) (lst)
 print (a |then| (b |then| c))(lst)
-
-print many(a)(make_inp("aaab"))
-print some(a)(make_inp("aaab"))
+print "----------------"
+print "many:",many(a)(make_inp("aaab"))
+print "some:",some(a)(make_inp("aaab"))
 
 def isdigit(c):
     # eq_p
@@ -189,7 +177,7 @@ def isalpha(c):
     return 'a' <= c <= 'z' or 'A'<= c <= 'Z'
 word = some(sat(isalpha))
 print num(make_inp("1234"))
-r= numbers(make_inp("1234"))
+r= (numbers |using| cons)(make_inp("12345"))
 print r
 print word(make_inp("abcdef!"))
 
@@ -198,13 +186,13 @@ def string(mlst):
     @TypeCheck(result=parser,inp=mlist)
     def p(inp):
         if mlst.empty():
-            return succeed("")(inp)
+            return succeed( mlist(None,None) )(inp)
         else:
             x,xs = mlst
             return ( literal(x) |then| string(xs))(inp)
     return p
-#print string(make_inp("abc"))(make_inp("abc,def"))
-
+print string(make_inp("abc"))(make_inp("abc,def"))
+print (string(make_inp("abc")) |using| cons)(make_inp("abc,def"))
 def snd(x,y):
     # snd (x,y) = y
     # just get rest -> return new parser class 容器
@@ -236,7 +224,8 @@ print xthen(a,b)(make_inp("abcde"))
 print thenx(a,b)(make_inp("abcde"))
 def value(x,y):
     r = {}
-    print type(x),type(y)
+    print "type:", type(x),type(y)
+    print "x,y:",x,y
     if isinstance(x,str):
         if x!="Fail":
             r['value'] = x
@@ -244,29 +233,13 @@ def value(x,y):
         else:
             return fail(y)
     else:
-        tmp = ~x
-        r['value'] = ''.join (tmp)
+        r['value'] = ~x
         return succeed(r)(y)
-
-def symbol(x,y):
-    r = {}
-    print type(x),type(y)
-    if isinstance(x,str):
-        if x!="Fail":
-            r['value'] = x
-            return succeed(r)(y)
-        else:
-            return fail(y)
-    else:
-        tmp = ~x
-        r['symbol'] = ''.join (tmp)
-        return succeed(r)(y)
-
 
 def expr(inp):
-    return ( (numbers |using| value) |alt| (word |using| symbol) )(inp)
+    return  (numbers |using| value) (inp)
 
-print expr(make_inp("var"))
+print expr(make_inp("123"))
 
 # 由于我的TypeCheck只是简单的做类型检查,所以可能有许多麻烦
 # 因为上述的fail 类型是 method ...所以构造会不同
