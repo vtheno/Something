@@ -30,10 +30,6 @@ class mlist(object):
         return "({} . {})".format(self.value[0],self.value[1])
     def __iter__(self):
         return iter(self.value)
-    def extend(self,mlst):
-        if self.empty():
-            return mlst
-        return mlist(self.fst,self.extend(self.snd,mlst) )
     def __invert__(self):
         tmp = [ [] ]
         def un_construct(mlst):
@@ -47,6 +43,13 @@ class mlist(object):
         un_construct(self)
         #print tmp
         return tmp[0]#''.join (tmp[0])
+
+@TypeCheck(result=mlist,a=mlist,mlst=mlist)
+def extend(a,mlst):
+        if a.empty():
+            return mlst
+        return mlist(a.fst,extend(a.snd,mlst) )
+
 @TypeCheck(result=mlist,string=str)
 def make_inp(string):
     xxs = list(string)
@@ -115,29 +118,18 @@ def then(p1,p2):
         #print type(r1)
         if r1==fail_flag:
             return fail(inp)
+        #print "Then1:",r1,extend(r1,rest1)
         r2,rest2 = p2(rest1) #p2(rest1) == r :: parser
         #print type(r2)
         if r2==fail_flag:
             return fail(inp)
-        #r = r1
-        #r+=r2
         def append(mlst1,mlst2):
-            #tmp1 = ~mlst1
-            #tmp2 = ~mlst2
-            #r = []
-            #r.extend(tmp1)
-            #r.extend(tmp2)
-            #def construct(lst):
-            #    if lst==[]:
-            #        return mlist(None,None)
-            #    return mlist(lst[0],construct(lst[1:]))
-            #print construct(r)
-            #return construct(r)
             if mlst1.empty():
                 return mlst2
             return mlist(mlst1.fst,append(mlst1.snd,mlst2))
         r = append(r1,r2)
         return succeed(r)(rest2)
+        #return succeed(succeed(r1)(r2))(rest2)
         #return succeed(r)(rest2)
         # this is seq  递归遍历 construct = mlist(*[r1,r2]) ,cons a ,b = mlist(a,b)
     return p
@@ -147,7 +139,11 @@ def using(l_p,f):
     @TypeCheck(result=parser,inp=mlist)
     def p(inp):
         r,rs = l_p(inp) # l_p(inp) <=> result :: parser 
-        return f(r,rs)
+        if r!=fail_flag:
+            print "using:",r,rs
+            return f(r,rs)
+        else:
+            return fail(rs)
     return p
 
 @TypeCheck(result=parser,a=object,b=object)
@@ -227,7 +223,7 @@ def snd(x,y):
     # snd (x,y) = y
     # just get rest -> return new parser class 容器
     print "snd:",x,"|",y
-    return succeed(y)(x)#mlist(None,None))
+    return succeed(y)(mlist(None,None))
 
 @Infix
 def xthen(p1,p2):
@@ -241,8 +237,8 @@ def xthen(p1,p2):
 def fst(x,y):
     # fst (x,y) = x
     # const x y = x
-    print "fst:",x,y
-    return succeed(x)(y)#mlist(None,None))
+    print "fst:",x,y,type(x),type(y)
+    return succeed(x)(mlist(None,None))
 @Infix
 def thenx(p1,p2):
     # p1 :: literal p
@@ -252,7 +248,7 @@ def thenx(p1,p2):
         return ( (p1 |then| p2 ) |using| fst)(inp)
     return p
 
-#print xthen(a,b)(make_inp("abcde"))
+print xthen(a,b)(make_inp("abcde"))
 #print thenx(a,b)(make_inp("abcde"))
 def value(x,y):
     r = {}
@@ -281,16 +277,14 @@ def op(x,y):
         return succeed(mlist(r,mlist(None,None)))(y)
 test = ( literal("[") |xthen| ( numbers |thenx| literal("]")) )
 t =  test (make_inp("[123]"))
-print t
 print t.result
-#print type(t.result.fst)
 plus = ( (numbers|using|value )|then| (literal("+")|using|op) |xthen| (numbers|using|value ))
 #n = make_inp("1+2")
 #print plus(n)
 #print expr(make_inp("(123)"))
 
 # 由于我的TypeCheck只是简单的做类型检查,所以可能有许多麻烦
-# 因为上述的fail 类型是 method ...所以构造会不同
+# 因为上述的fail 类型是 methd ...所以构造会不同
 # sat 是 succeed的变体
 # 传入一个参数 类型为 object -> bool
 # 由于我们有了make_inp 把东西放到 parser类里
