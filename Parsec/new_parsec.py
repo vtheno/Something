@@ -140,8 +140,6 @@ def cons(pc):
     else:
         r = mlist(''.join(~r),mlist(None,None))
         return succeed(r)(rs)
-
-    return pc
 def many(p):
     @TypeCheck(result=Parser,inp=mlist)    
     def curry_many(inp):
@@ -162,6 +160,7 @@ def some(l_p):
 @TypeCheck(result=Parser,pc=Parser)
 def snd(pc):
     r,rs = pc
+    print "snd:",r.head,r.tail
     r = r.tail
     return succeed(r)(rs)
 
@@ -215,3 +214,9 @@ t2 = str2mlist("1234")
 print number(t2)
 expr = lef |xthen| number |thenx| rig
 print expr(str2mlist("[123]"))
+op_add = literal("+") 
+plus = (number |thenx| op_add) |then| number
+plus2 = number |then| (op_add |xthen| number)
+t3 = str2mlist("12+23")
+print plus(t3)
+print plus2(t3)
