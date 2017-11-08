@@ -5,6 +5,7 @@ from Infix import Infix
 from TypeCheck import TypeCheck
 
 class Parser(object):
+    """ 容纳 处理的结果或状态 以及余下内容的 容器类型:""" 
     def __init__(self,head,tail):
         self.head=head
         self.tail=tail
@@ -16,6 +17,7 @@ class Parser(object):
         return iter([self.head,self.tail])
 
 class mlist(object):
+    """ Lisp 中的 cons 列表 ,当然 这里可以替换为py的list"""
     def __init__(self,head,tail):
         self.head=head
         self.tail=tail
@@ -38,6 +40,7 @@ class mlist(object):
     def __iter__(self):
         return iter([self.head,self.tail])
     def __invert__(self):
+        """ 这里将它转换到普通列表 """
         tmp = [ [] ]
         def un_construct(mlst):
             if mlst.empty():
@@ -136,9 +139,9 @@ def using(p,f):
 def cons(pc):
     r,rs = pc
     if r == fail_flag:
-        return fail(rs)
+        return fail(rs) # pc is fail
     else:
-        r = mlist(''.join(~r),mlist(None,None))
+        r = mlist(''.join(~r),empty_m)
         return succeed(r)(rs)
 def many(p):
     @TypeCheck(result=Parser,inp=mlist)    
@@ -156,6 +159,18 @@ def some(l_p):
     def p(inp):
         return  ( (l_p |then| many(l_p)) |using| cons )(inp)
     return p
+
+def string(mlst):
+    # mlst :: mlist
+    @TypeCheck(result=Parser,inp=mlist)
+    def p(inp):
+        if mlst.empty():
+            return succeed( mlist(None,None) )(inp)
+        else:
+            x,xs = mlst
+            return (( literal(x) |then| string(xs)) |using| cons )(inp)
+    return p
+print string(str2mlist("abc"))(str2mlist("abc,def"))
 
 @TypeCheck(result=Parser,pc=Parser)
 def snd(pc):
@@ -179,7 +194,7 @@ def fst(pc):
         return succeed(r)(rs)
     else:
         if r==None:
-            return pc
+            return pc # fail is fail
         r = mlist(r,empty_m)
         return succeed(r)(rs)
 
@@ -209,7 +224,17 @@ print (a |thenx| a)(t)
 lef = literal("[")
 rig = literal("]")
 isdigit = lambda x:'0'<=x<='9'
-number = some(sat(isdigit))
+def unconstruct(mlst):
+    if mlst.empty():
+        return []
+    return [mlst.head] + list(unconstruct(mlst.tail))
+def value(pc):
+    r,rs = pc
+    print "value:",r,rs
+    res = unconstruct(r)
+    res = {"Num":res[0]}
+    return succeed(mlist(res,empty_m))(rs)
+number = some(sat(isdigit)) |using| value
 t2 = str2mlist("1234")
 print number(t2)
 expr = lef |xthen| number |thenx| rig
@@ -220,3 +245,11 @@ plus2 = number |then| (op_add |xthen| number)
 t3 = str2mlist("12+23")
 print plus(t3)
 print plus2(t3)
+def add(pc):
+    r,rs = pc
+    res = {}
+    res["OP"] = "add"
+    res['args'] = unconstruct(r)
+    return succeed(res)(rs)
+
+print (plus |using| add)(t3)
