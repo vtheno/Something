@@ -1,0 +1,24 @@
+        def mlst_append(lst,cdr):
+            #print lst,cdr
+            #print type(lst),type(cdr)
+            if isinstance(lst,mlist):
+                print lst
+                head = ~lst
+            else:
+                head = [lst] if lst!='' else []
+            if isinstance(cdr,mlist):
+                tail = ~cdr
+            else:
+                tail = [cdr] if cdr!='' else []
+            tmp = []
+            tmp+=head
+            tmp+=tail
+            #print tmp
+            def cons(lst):
+                if lst==[]:
+                    return mlist(None,None)
+                return mlist(lst[0],cons(lst[1:]))
+            print cons(tmp),tmp,head,tail
+            return cons(tmp)
+        mlst_append(r1,r2)
+
