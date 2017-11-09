@@ -78,7 +78,7 @@ def succeed(v):
         return Parser(v,inp)
     return curry_succeed
 
-fail_flag = None
+fail_flag = empty_m
 @TypeCheck(result=Parser,inp=mlist)
 def fail(inp):
     return succeed(fail_flag)(inp)
@@ -253,3 +253,5 @@ def add(pc):
     return succeed(res)(rs)
 
 print (plus |using| add)(t3)
+print a(str2mlist("bbb"))
+print many(a) (str2mlist('bbb'))
