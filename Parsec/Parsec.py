@@ -69,6 +69,8 @@ def str2mlist(string):
 def mlist_extend(s1,s2):
     if s1.empty():
         return s2
+    if s2.empty():
+        return s1
     return mlist(s1.head,mlist_extend(s1.tail,s2))
 
 
@@ -122,7 +124,7 @@ def then(p1,p2):
         if r!=fail_flag:
             r1,rs1 = p2(rs)
             if r1!=fail_flag:
-                print "r:",r,r1
+                #print "r:",r,r1
                 res = mlist_extend(r,r1)
                 #print "res:",res
                 return succeed(res)(rs1)
@@ -176,10 +178,9 @@ def string(mlst):
 def snd(pc):
     r,rs = pc
     #print "snd:",r.head,r.tail
-    r = r.tail
-    print "snd:",r,type(r)
-    if r==None:
+    if r.empty():
         return pc
+    r = r.tail
     return succeed(r)(rs)
 
 @Infix
@@ -192,12 +193,12 @@ def xthen(p1,p2):
 @TypeCheck(result=Parser,pc=Parser)
 def fst(pc):
     r,rs = pc
+    if r.empty():
+        return pc
     r = r.head
     if isinstance(r,mlist):
         return succeed(r)(rs)
     else:
-        if r==None:
-            return pc # fail is fail
         r = mlist(r,empty_m)
         return succeed(r)(rs)
 
@@ -276,11 +277,11 @@ print t
 print word(t)
 t1 = I(" 1234 ")
 
-space = lambda x:x in " \t"
+space = lambda x:x == " "
 whitespace = some(sat(space))
 def token(p):
     def curry_token(inp):
-        return ( ( ( whitespace |xthen| p ) |thenx| whitespace ) |alt| p)(inp)
+        return ( whitespace |xthen| p |thenx| whitespace ) (inp)
     return curry_token
 number = token(num)
 symbol  = token(word)
