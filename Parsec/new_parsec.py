@@ -250,8 +250,10 @@ def add(pc):
     res = {}
     res["OP"] = "add"
     res['args'] = unconstruct(r)
-    return succeed(res)(rs)
+    return succeed(mlist(res,empty_m))(rs)
 
-print (plus |using| add)(t3)
+r= (plus |using| add)(t3)
+print r
 print a(str2mlist("bbb"))
 print many(a) (str2mlist('bbb'))
+
