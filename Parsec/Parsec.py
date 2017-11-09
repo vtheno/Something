@@ -1,215 +1,168 @@
 #coding=utf-8
-from TypeCheck import TypeCheck
-from Infix import Infix
 # type object  is anything 
 # parsec Learn from : Higher-Order Functions for Parsing by Graham Hutton
-class parser(object):
-    " Data Type"
-    def __init__(self,v,inp):
-        # need two arg
-        self.value = v,inp
-        self.result = v
-        self.rest = inp
-    def __iter__(self):
-        return iter(self.value)
+from Infix import Infix
+from TypeCheck import TypeCheck
+
+class Parser(object):
+    """ 容纳 处理的结果或状态 以及余下内容的 容器类型:""" 
+    def __init__(self,head,tail):
+        self.head=head
+        self.tail=tail
     def __repr__(self):
-        return "(  result: {} , rest: {}  ) ".format(self.result,self.rest)
+        return "( result : {} ,rest:{} )".format(self.head,self.tail)
+    def isFail(self):
+        return self.head == None
+    def __iter__(self):
+        return iter([self.head,self.tail])
 
 class mlist(object):
-    " My List"
-    " mlist(1,2) :: ( 1 :: object . (2 .empty) :: mlist)"
-    def __init__(self,fst,snd):
-        self.fst = fst
-        self.snd = snd
-        self.value = (fst,snd)
-    def empty(self):
-        return self.value == (None,None) #"empty"
+    """ Lisp 中的 cons 列表 ,当然 这里可以替换为py的list"""
+    def __init__(self,head,tail):
+        self.head=head
+        self.tail=tail
     def __repr__(self):
+        args = repr(self.head) if self.head!=None else ""
+        if self.tail !=None:
+            args +=', {}'.format(repr(self.tail))
+        return "({})".format(args)
+    def empty(self):
+        return self.head == None and self.tail == None
+    def __len__(self):
         if self.empty():
-            return "empty"
-        return "({} . {})".format(self.value[0],self.value[1])
+            return 0
+        else:
+            return 1+len(self.tail)
+    def __getitem__(self,i):
+        if i == 0:
+            return self.head
+        return self.tail[i-1]
     def __iter__(self):
-        return iter(self.value)
+        return iter([self.head,self.tail])
     def __invert__(self):
+        """ 这里将它转换到普通列表 """
         tmp = [ [] ]
         def un_construct(mlst):
             if mlst.empty():
                 return []
             else:
-                #tmp[0]+=mlst.fst
-                #print mlst.fst
-                tmp[0].extend (mlst.fst)
-                return un_construct(mlst.snd)
+                tmp[0].extend (mlst.head)
+                return un_construct(mlst.tail)
         un_construct(self)
-        #print tmp
+        #print tmp[0]
         return tmp[0]#''.join (tmp[0])
 
-@TypeCheck(result=mlist,a=mlist,mlst=mlist)
-def extend(a,mlst):
-        if a.empty():
-            return mlst
-        return mlist(a.fst,extend(a.snd,mlst) )
-
+empty_m =mlist(None,None)
+#print empty_m,empty_P
+#print "empty:",empty_m == empty_m
 @TypeCheck(result=mlist,string=str)
-def make_inp(string):
-    xxs = list(string)
-    def cons(lst):
-        if lst==[]:
-            return mlist(None,None)
-        return mlist(lst[0],cons(lst[1:]))
-    return cons(xxs)
+def str2mlist(string):
+    lst = list(string)
+    def construct(tmp):
+        if tmp == []:
+            return empty_m
+        return mlist(tmp[0],construct(tmp[1:]))
+    r= construct(lst)
+    return r
+
+@TypeCheck(result=mlist,s1=mlist,s2=mlist)
+def mlist_extend(s1,s2):
+    if s1.empty():
+        return s2
+    return mlist(s1.head,mlist_extend(s1.tail,s2))
+
 
 def succeed(v):
-    # v -> (mlist -> parser)
-    @TypeCheck(result=parser,inp=mlist)
-    def p(inp):
-        return parser(v,inp)
-    return p
+    @TypeCheck(result=Parser,inp=mlist)
+    def curry_succeed(inp):
+        return Parser(v,inp)
+    return curry_succeed
 
-" fail is parsec"
-fail_flag = "Fail"
-fail = succeed(fail_flag)
-#print fail(make_inp("123"))
+fail_flag = empty_m
+@TypeCheck(result=Parser,inp=mlist)
+def fail(inp):
+    return succeed(fail_flag)(inp)
 
-def sat(eq_p):
-    # eq_p =>   eq a b = a == b ,:: a -> b -> bool 
-    @TypeCheck(result=parser,lst=mlist)
-    def p(lst):
-        if lst.empty():
-            return fail(lst)
+def sat(p):
+    #p :: * -> bool
+    @TypeCheck(result=Parser,inp=mlist)
+    def curry_sat(inp):
+        if inp.empty():
+            return fail(inp)
         else:
-            r,rs = lst
-            print "sat:",r,rs
-            if eq_p(r):
-                print "sat:",type(r)
-                return succeed(mlist(r,mlist(None,None)))(rs)
+            x,xs = inp
+            if p(x):
+                return succeed(mlist(x,empty_m))(xs)
             else:
-                return fail(rs)
-    return p
+                return fail(xs)
+    return curry_sat
 
-@TypeCheck(result=bool,a=object,b=object)
-def eq(a,b):
-    return a==b
-
-def literal(char):
-    # literal 无法做类型检查 ,but uncurry 之后就可以
-    # it :: char -> parser 
+def literal(c):
     @TypeCheck(result=bool,a=object)
-    def eq_p(a):
-        return eq(a,char)
-    return sat(eq_p)
+    def curry_eq_p(a):
+        return a==c
+    return sat(curry_eq_p)
 @Infix
 def alt(p1,p2):
-    @TypeCheck(result=parser,inp=mlist)
-    def p(inp):
+    @TypeCheck(result=Parser,inp=mlist)
+    def curry_alt(inp):
         r,rest = p1(inp) # p1(inp) :: parser
         #print  isinstance(p1(inp)),parser)
         if r!=fail_flag:
             return succeed(r)(rest) # succeed(r)(rest) :: parser
         return p2(inp)
-    return p
-
+    return curry_alt
 
 @Infix
 def then(p1,p2):
-    @TypeCheck(result=parser,inp=mlist)
-    def p(inp):
-        r1,rest1 = p1(inp) # :: parser
-        #print type(r1)
-        if r1==fail_flag:
-            return fail(inp)
-        #print "Then1:",r1,extend(r1,rest1)
-        r2,rest2 = p2(rest1) #p2(rest1) == r :: parser
-        #print type(r2)
-        if r2==fail_flag:
-            return fail(inp)
-        def append(mlst1,mlst2):
-            if mlst1.empty():
-                return mlst2
-            return mlist(mlst1.fst,append(mlst1.snd,mlst2))
-        r = append(r1,r2)
-        return succeed(r)(rest2)
-        #return succeed(succeed(r1)(r2))(rest2)
-        #return succeed(r)(rest2)
-        # this is seq  递归遍历 construct = mlist(*[r1,r2]) ,cons a ,b = mlist(a,b)
-    return p
-
-@Infix
-def using(l_p,f):
-    @TypeCheck(result=parser,inp=mlist)
-    def p(inp):
-        r,rs = l_p(inp) # l_p(inp) <=> result :: parser 
+    # p1 p2 :: literal(xxx)
+    @TypeCheck(result=Parser,inp=mlist)    
+    def curry_then(inp):
+        r,rs = p1(inp)
         if r!=fail_flag:
-            print "using:",r,rs
-            return f(r,rs)
-        else:
-            return fail(rs)
-    return p
-
-@TypeCheck(result=parser,a=object,b=object)
-def cons(a,b):
-    r = a
-    rs =b
-    #print "type:",type(r),type(rs),r,rs
-    if isinstance(r,str):
-        if r == fail_flag:
-            return fail(rs)
+            r1,rs1 = p2(rs)
+            if r1!=fail_flag:
+                #print r,r1,mlist_extend(r,r1)
+                res = mlist_extend(r,r1)
+                #print "res:",res
+                return succeed(res)(rs1)
+        return fail(inp)
+    return curry_then
+@Infix
+def using(p,f):
+    @TypeCheck(result=Parser,inp=mlist)
+    def curry_using(inp):
+        tmp = p(inp)
+        r = f(tmp)
+        return r
+    return curry_using
+def cons(pc):
+    r,rs = pc
+    if r == fail_flag:
+        return fail(rs) # pc is fail
     else:
-        print "cons:",a,b
-        r = mlist(''.join(~a),mlist(None,None))
-        #print "r:",r
+        r = mlist(''.join(~r),empty_m)
         return succeed(r)(rs)
-def many(l_p):
-    @TypeCheck(result=parser,inp=mlist)
-    def p(inp):
-        #print inp
+def many(p):
+    @TypeCheck(result=Parser,inp=mlist)    
+    def curry_many(inp):
         return (
-            ( (l_p |then| many(l_p) ) |using| cons )
+            ( (p |then| many(p) ) |using| cons )
             |alt|
-            succeed( mlist(None,None) ) )(inp) # if l_p(inp) |then| many(l_p)  fail then succeed
-    return p
+            succeed( mlist(None,None) )
+        )(inp) # if l_p(inp) |then| many(l_p)  fail then succeed
+    return curry_many
 
 def some(l_p):
     # l_p like literal 
-    @TypeCheck(result=parser,inp=mlist)
+    @TypeCheck(result=Parser,inp=mlist)
     def p(inp):
         return  ( (l_p |then| many(l_p)) |using| cons )(inp)
     return p
 
-lst = make_inp("abcde")
-nums = make_inp("1234")
-r = sat(lambda a:a=="a")(lst)
-#print isinstance(r,parser),r
-#print literal('a')(lst)
-a = literal('a')
-b = literal('b')
-c = literal('c')
-#print ( literal('a') |alt| fail)(lst)
-#print (fail |alt| literal('a'))(lst)
-#print (a |alt| (b |alt| c))(lst)
-#print ( (a |alt| b) |alt| c) (lst)
-#print (a |then| b)(lst)
-#print (a |then| b |then| c) (lst) 
-#print  (a |then| (b |then| c))(lst)
-print "----------------"
-#print "many:",many(a)(make_inp("aaab"))
-#print "some:",some(a)(make_inp("aaab"))
-
-def isdigit(c):
-    # eq_p
-    return '0'<=c<='9'
-num = sat(isdigit)
-numbers = some(num)
-def isalpha(c):
-    return 'a' <= c <= 'z' or 'A'<= c <= 'Z'
-word = some(sat(isalpha))
-#print num(make_inp("1234"))
-#print (numbers)(make_inp("12345"))
-#print word(make_inp("abcdef!"))
-
 def string(mlst):
     # mlst :: mlist
-    @TypeCheck(result=parser,inp=mlist)
+    @TypeCheck(result=Parser,inp=mlist)
     def p(inp):
         if mlst.empty():
             return succeed( mlist(None,None) )(inp)
@@ -217,78 +170,85 @@ def string(mlst):
             x,xs = mlst
             return (( literal(x) |then| string(xs)) |using| cons )(inp)
     return p
-#print string(make_inp("abc"))(make_inp("abc,def"))
+#print string(str2mlist("abc"))(str2mlist("abc,def"))
 
-def snd(x,y):
-    # snd (x,y) = y
-    # just get rest -> return new parser class 容器
-    print "snd:",x,"|",y
-    return succeed(y)(mlist(None,None))
+@TypeCheck(result=Parser,pc=Parser)
+def snd(pc):
+    r,rs = pc
+    #print "snd:",r.head,r.tail
+    r = r.tail
+    return succeed(r)(rs)
 
 @Infix
 def xthen(p1,p2):
-    # p1 :: literal p
-    # p2 :: literal p
-    @TypeCheck(result=parser,inp=mlist)
-    def p(inp):
+    @TypeCheck(result=Parser,inp=mlist)
+    def curry_xthen(inp):
         return ( (p1 |then| p2) |using| snd )(inp)
-    return p
+    return curry_xthen
 
-def fst(x,y):
-    # fst (x,y) = x
-    # const x y = x
-    print "fst:",x,y,type(x),type(y)
-    return succeed(x)(mlist(None,None))
+@TypeCheck(result=Parser,pc=Parser)
+def fst(pc):
+    r,rs = pc
+    r = r.head
+    if isinstance(r,mlist):
+        return succeed(r)(rs)
+    else:
+        if r==None:
+            return pc # fail is fail
+        r = mlist(r,empty_m)
+        return succeed(r)(rs)
+
 @Infix
 def thenx(p1,p2):
-    # p1 :: literal p
-    # p2 :: literal p
-    @TypeCheck(result=parser,inp=mlist)
-    def p(inp):
-        return ( (p1 |then| p2 ) |using| fst)(inp)
-    return p
+    @TypeCheck(result=Parser,inp=mlist)
+    def curry_xthen(inp):
+        return ( (p1 |then| p2) |using| fst )(inp)
+    return curry_xthen
 
-print xthen(a,b)(make_inp("abcde"))
-#print thenx(a,b)(make_inp("abcde"))
-def value(x,y):
-    r = {}
-    #print "type:", type(x),type(y)
-    #print "x,y:",x,y
-    if isinstance(x,str):
-        if x!="Fail":
-            r["Num"]=long(x)
-            return succeed(r)(y)
-        else:
-            return fail(y)
-    else:
-        print "x:",x
-        r["Num"]= long(''.join(~x))
-        return succeed(mlist(r,mlist(None,None)))(y)
-def op(x,y):
-    r = {}
-    if isinstance(x,str):
-        if x!="Fail":
-            r['op']=x
-            return succeed(r)(y)
-        else:
-            return fail(y)
-    else:
-        r['op'] = ''.join(~x)
-        return succeed(mlist(r,mlist(None,None)))(y)
-test = ( literal("[") |xthen| ( numbers |thenx| literal("]")) )
-t =  test (make_inp("[123]"))
-print t.result
-plus = ( (numbers|using|value )|then| (literal("+")|using|op) |xthen| (numbers|using|value ))
-#n = make_inp("1+2")
-#print plus(n)
-#print expr(make_inp("(123)"))
+def unconstruct(mlst):
+    if mlst.empty():
+        return []
+    return [mlst.head] + list(unconstruct(mlst.tail))
 
-# 由于我的TypeCheck只是简单的做类型检查,所以可能有许多麻烦
-# 因为上述的fail 类型是 methd ...所以构造会不同
-# sat 是 succeed的变体
-# 传入一个参数 类型为 object -> bool
-# 由于我们有了make_inp 把东西放到 parser类里
-# 理清楚这里的类型 就好做了
-# 区分清楚哪些函数的类型
-# 函数是一个过程 函数参数 转换 到函数返回值 类型的过程
+def test():
+    t = str2mlist("aabcdef")
+    a = literal('a')
+    print (a|then|a)(t)
+    c= many(a)(t)
+    print "c:",c
+    print "head:",c.head
+    print "tail:",c.tail
+    print (a |xthen| a)(t)
+    print (a |thenx| a)(t)
+    lef = literal("[")
+    rig = literal("]")
+    isdigit = lambda x:'0'<=x<='9'
+    def value(pc):
+        r,rs = pc
+        print "value:",r,rs
+        res = unconstruct(r)
+        res = {"Num":res[0]}
+        return succeed(mlist(res,empty_m))(rs)
+    number = some(sat(isdigit)) |using| value
+    t2 = str2mlist("1234")
+    print number(t2)
+    expr = lef |xthen| number |thenx| rig
+    print expr(str2mlist("[123]"))
+    op_add = literal("+") 
+    plus = (number |thenx| op_add) |then| number
+    plus2 = number |then| (op_add |xthen| number)
+    t3 = str2mlist("12+23")
+    print plus(t3)
+    print plus2(t3)
+    def add(pc):
+        r,rs = pc
+        res = {}
+        res["OP"] = "add"
+        res['args'] = unconstruct(r)
+        return succeed(mlist(res,empty_m))(rs)
+
+    r= (plus |using| add)(t3)
+    print r
+    print a(str2mlist("bbb"))
+    print many(a) (str2mlist('bbb'))
 
