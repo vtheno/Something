@@ -12,7 +12,7 @@ class Parser(object):
     def __repr__(self):
         return "( result : {} ,rest:{} )".format(self.head,self.tail)
     def isFail(self):
-        return self.head == None
+        return (self.head).empty()
     def __iter__(self):
         return iter([self.head,self.tail])
 
@@ -122,7 +122,7 @@ def then(p1,p2):
         if r!=fail_flag:
             r1,rs1 = p2(rs)
             if r1!=fail_flag:
-                #print r,r1,mlist_extend(r,r1)
+                print "r:",r,r1
                 res = mlist_extend(r,r1)
                 #print "res:",res
                 return succeed(res)(rs1)
@@ -177,6 +177,9 @@ def snd(pc):
     r,rs = pc
     #print "snd:",r.head,r.tail
     r = r.tail
+    print "snd:",r,type(r)
+    if r==None:
+        return pc
     return succeed(r)(rs)
 
 @Infix
@@ -252,3 +255,33 @@ def test():
     print a(str2mlist("bbb"))
     print many(a) (str2mlist('bbb'))
 
+
+word = some(sat(lambda x:'a'<=x<='z' or 'A'<=x<='Z'))
+# word <=> w+
+
+digit = lambda x:'0'<=x<='9'
+num = some(sat(digit)) # d+
+I = str2mlist
+def string(mlst):
+    def p(inp):
+        if mlst.empty():
+            return succeed( mlist(None,None) )(inp)
+        else:
+            x,xs = mlst
+            return (( literal(x) |then| string(xs)) |using| cons )(inp)
+    return p
+
+t = I(" abcd ")
+print t
+print word(t)
+t1 = I(" 1234 ")
+
+space = lambda x:x in " \t"
+whitespace = some(sat(space))
+def token(p):
+    def curry_token(inp):
+        return ( ( ( whitespace |xthen| p ) |thenx| whitespace ) |alt| p)(inp)
+    return curry_token
+number = token(num)
+symbol  = token(word)
+print ( number |alt| symbol )(t)
