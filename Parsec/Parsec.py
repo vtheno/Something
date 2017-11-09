@@ -257,32 +257,32 @@ def test():
     print many(a) (str2mlist('bbb'))
 
 
-word = some(sat(lambda x:'a'<=x<='z' or 'A'<=x<='Z'))
-# word <=> w+
-
-digit = lambda x:'0'<=x<='9'
-num = some(sat(digit)) # d+
-I = str2mlist
-def string(mlst):
-    def p(inp):
-        if mlst.empty():
-            return succeed( mlist(None,None) )(inp)
-        else:
-            x,xs = mlst
-            return (( literal(x) |then| string(xs)) |using| cons )(inp)
-    return p
-
-t = I(" abcd ")
-print t
-print word(t)
-t1 = I(" 1234 ")
-
-space = lambda x:x == " "
-whitespace = some(sat(space))
-def token(p):
-    def curry_token(inp):
-        return ( whitespace |xthen| p |thenx| whitespace ) (inp)
-    return curry_token
-number = token(num)
-symbol  = token(word)
-print ( number |alt| symbol )(t)
+    word = some(sat(lambda x:'a'<=x<='z' or 'A'<=x<='Z'))
+    # word <=> w+
+    
+    digit = lambda x:'0'<=x<='9'
+    num = some(sat(digit)) # d+
+    I = str2mlist
+    def string(mlst):
+        def p(inp):
+            if mlst.empty():
+                return succeed( mlist(None,None) )(inp)
+            else:
+                x,xs = mlst
+                return (( literal(x) |then| string(xs)) |using| cons )(inp)
+        return p
+        
+    t = I(" abcd ")
+    print t
+    print word(t)
+    t1 = I(" 1234 ")
+    
+    space = lambda x:x == " "
+    whitespace = some(sat(space))
+    def token(p):
+        def curry_token(inp):
+            return ( whitespace |xthen| p |thenx| whitespace ) (inp)
+        return curry_token
+    number = token(num)
+    symbol  = token(word)
+    print ( number |alt| symbol )(t)
