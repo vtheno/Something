@@ -177,7 +177,6 @@ def string(mlst):
 @TypeCheck(result=Parser,pc=Parser)
 def snd(pc):
     r,rs = pc
-    #print "snd:",r.head,r.tail
     if r.empty():
         return pc
     r = r.tail
