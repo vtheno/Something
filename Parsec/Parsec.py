@@ -110,7 +110,7 @@ def alt(p1,p2):
     def curry_alt(inp):
         r,rest = p1(inp) # p1(inp) :: parser
         #print  isinstance(p1(inp)),parser)
-        if r!=fail_flag:
+        if r!=fail_flag: # r.empty() ? 
             return succeed(r)(rest) # succeed(r)(rest) :: parser
         return p2(inp)
     return curry_alt
@@ -121,7 +121,7 @@ def then(p1,p2):
     @TypeCheck(result=Parser,inp=mlist)    
     def curry_then(inp):
         r,rs = p1(inp)
-        if r!=fail_flag:
+        if r!=fail_flag:# r.empty?
             r1,rs1 = p2(rs)
             if r1!=fail_flag:
                 #print "r:",r,r1
@@ -152,7 +152,7 @@ def many(p):
         return (
             ( (p |then| many(p) ) |using| cons )
             |alt|
-            succeed( mlist(None,None) )
+            succeed( mlist(None,None) ) # why not fail
         )(inp) # if l_p(inp) |then| many(l_p)  fail then succeed
     return curry_many
 
@@ -168,7 +168,7 @@ def string(mlst):
     @TypeCheck(result=Parser,inp=mlist)
     def p(inp):
         if mlst.empty():
-            return succeed( mlist(None,None) )(inp)
+            return succeed( mlist(None,None) )(inp) # why not fail
         else:
             x,xs = mlst
             return (( literal(x) |then| string(xs)) |using| cons )(inp)
