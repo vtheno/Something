@@ -143,6 +143,7 @@ def cons(pc):
     if r == fail_flag:
         return fail(rs) # pc is fail
     else:
+        # this cons is construct string not construct list
         r = mlist(''.join(~r),empty_m)
         return succeed(r)(rs)
 def many(p):
