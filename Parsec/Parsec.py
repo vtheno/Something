@@ -18,6 +18,8 @@ class Parser(object):
 
 class mlist(object):
     """ Lisp 中的 cons 列表 ,当然 这里可以替换为py的list"""
+    row = int()
+    col = int()
     def __init__(self,head,tail):
         self.head=head
         self.tail=tail
@@ -144,7 +146,7 @@ def cons(pc):
         return fail(rs) # pc is fail
     else:
         # this cons is construct string not construct list
-        r = mlist(''.join(~r),empty_m)
+        #r = mlist(''.join(~r),empty_m)
         return succeed(r)(rs)
 def many(p):
     @TypeCheck(result=Parser,inp=mlist)    
@@ -213,6 +215,15 @@ def unconstruct(mlst):
     if mlst.empty():
         return []
     return [mlst.head] + list(unconstruct(mlst.tail))
+
+def any(p):
+    def curry_any(lst):
+        if lst == [] :
+            return fail
+        else:
+            x,xs = lst[0],lst[1:]
+            return ( p(x) |alt| curry_any(xs) )
+    return curry_any
 
 def test():
     t = str2mlist("aabcdef")
