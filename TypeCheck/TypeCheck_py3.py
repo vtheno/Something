@@ -3,6 +3,7 @@
 # __annotations__
 # 用于调试时的辅助装饰器
 # 真正上线运行时删掉即可
+import types 
 def typecheck(fn):
     assert isinstance(fn,type(lambda _:_))
     func     = fn
@@ -54,7 +55,7 @@ def typecheck(fn):
             Maps = kawg
             tmpkey = list(set(Vars) - set(Maps.keys()))
             Maps.update(dict(zip(tmpkey,args)))
-        
+
         return check(Maps)
 
     function.types = types
@@ -68,6 +69,10 @@ def debug():
         return "b"
     print( aaa(2,1) )
     print ( aaa.types)
+    def bbb(fn:types.FunctionType) -> str:
+        return fn.__name__
+    print(bbb)
+    bbb(aaa)
 
-debug()
-__all__ = ['typecheck']
+func = types.FunctionType
+__all__ = ['typecheck',func]
