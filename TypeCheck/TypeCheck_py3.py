@@ -84,4 +84,4 @@ def debug():
 
 #debug()
 func = ts.FunctionType
-__all__ = ['typecheck',func]
+__all__ = ['typecheck','func']
