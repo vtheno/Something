@@ -38,7 +38,7 @@ def mappend(lst1,lst2):
     if lst1 == [] :
         return lst2
     return [lst1[0]] + mappend(lst1[1:],lst2)
-    
+
 def alt(p):
     def alt_(q):
         def calt(inp):
