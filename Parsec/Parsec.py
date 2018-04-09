@@ -1,299 +1,312 @@
 #coding=utf-8
-# type object  is anything 
-# parsec Learn from : Higher-Order Functions for Parsing by Graham Hutton
-from Infix import Infix
-from TypeCheck import TypeCheck
+from Match import *
+"""
+datatype 'a List = Nil
+                 | Cons of 'a * 'a list
+"""
+List = type("List",(),{})
+Nil = type("Nil",(List,),{"__repr__":lambda self:"[]"})
+nil = Nil()
 
-class Parser(object):
-    """ 容纳 处理的结果或状态 以及余下内容的 容器类型:""" 
-    def __init__(self,head,tail):
-        self.head=head
-        self.tail=tail
+@Tail
+def Helper(lst,acc=[]):
+    if lst.null():
+        return acc
+    return Helper(lst.tl,[repr(lst.hd)]+acc )
+def helper(lst):
+    return reversed(force(Helper(lst,[])))
+
+class Cons(List):
+    def __init__(self,hd,tl):
+        self.hd = hd
+        assert isinstance(tl,List)
+        self.tl = tl
     def __repr__(self):
-        return "( result : {} ,rest:{} )".format(self.head,self.tail)
-    def isFail(self):
-        return (self.head).empty()
-    def __iter__(self):
-        return iter([self.head,self.tail])
+        if isinstance(self.tl,Nil):
+            return "[ {} ]".format(repr(self.hd))
+        temp = ','.join ( helper(self) )
+        #return "[ {} ,{} ]".format(repr(self.hd),self.tl)
+        return "[" + temp + "]"
+@matcher(Cons)
+def tail_foldl(self,f,acc):
+    return self.tl.tail_foldl(f,f(acc,self.hd))
+@matcher(Nil)
+def tail_foldl(self,f,acc):
+    return acc
+def foldl(f,acc,LIST):
+    return force(LIST.tail_foldl(f,acc))
+def foldl1(f,LIST):
+    return force(LIST.tl.tail_foldl(f,LIST.hd))
+@matcher(Nil,False)
+def Tfoldr(self,f,end):
+    return end
+@matcher(Cons,False)
+def Tfoldr(self,f,end):
+    return f(self.hd,self.tl.Tfoldr(f,end))
+def flip(f):
+    return lambda a,b: f(b,a)
+def foldr(f,end,LIST):
+    " https://wiki.haskell.org/Fold#Overview "
+    f2 = flip(f)
+    lst = reverse ( LIST )
+    return foldl(f2,end,lst)
+def foldr1(f,LIST):
+    lst = reverse( LIST )
+    f2 = flip(f)
+    return foldl1(f2,lst)
+@matcher(Nil)
+def rev(self):
+    return self
+@matcher(Cons)
+def rev(self):
+    return self.tail_foldl(lambda a,b:Cons(b,a),nil)
+def reverse(LIST):
+    return force(LIST.rev())
+@matcher(Nil,False)
+def __add__(self,ys):
+    return ys
+@matcher(Cons,False)
+def __add__(self,ys):
+    #print "__add__:",self
+    #return reverse ( foldl(lambda b,a:Cons(a,b),reverse(ys),self )
+    #return reverse ( foldl(lambda b,a:Cons(a,b),reverse(self),ys) )
+    return foldr (Cons,ys,self)
+@matcher(Nil)
+def tail_map(self,f,acc):
+    return acc
+@matcher(Cons)
+def tail_map(self,f,acc):
+    #print "tail_map:",self.hd
+    return self.tl.tail_map(f,Cons( apply(f,self.hd) ,acc) )
+def Map(f,LIST):
+    lst = reverse(LIST)
+    return force(lst.tail_map(f,nil))
+@matcher(Nil,False)
+def null(self):
+    return True
+@matcher(Cons,False)
+def null(self):
+    return False
 
-class mlist(object):
-    """ Lisp 中的 cons 列表 ,当然 这里可以替换为py的list"""
-    row = int()
-    col = int()
-    def __init__(self,head,tail):
-        self.head=head
-        self.tail=tail
-    def __repr__(self):
-        args = repr(self.head) if self.head!=None else ""
-        if self.tail !=None:
-            args +=', {}'.format(repr(self.tail))
-        return "({})".format(args)
-    def empty(self):
-        return self.head == None and self.tail == None
-    def __len__(self):
-        if self.empty():
-            return 0
-        else:
-            return 1+len(self.tail)
-    def __getitem__(self,i):
-        if i == 0:
-            return self.head
-        return self.tail[i-1]
-    def __iter__(self):
-        return iter([self.head,self.tail])
-    def __invert__(self):
-        """ 这里将它转换到普通列表 """
-        tmp = [ [] ]
-        def un_construct(mlst):
-            if mlst.empty():
-                return []
-            else:
-                tmp[0].extend (mlst.head)
-                return un_construct(mlst.tail)
-        un_construct(self)
-        #print tmp[0]
-        return tmp[0]#''.join (tmp[0])
+def Concat(lst):
+    return foldl (lambda a,b:a + b,nil,lst)
 
-empty_m =mlist(None,None)
-#print empty_m,empty_P
-#print "empty:",empty_m == empty_m
-@TypeCheck(result=mlist,string=str)
-def str2mlist(string):
-    lst = list(string)
-    def construct(tmp):
-        if tmp == []:
-            return empty_m
-        return mlist(tmp[0],construct(tmp[1:]))
-    r= construct(lst)
-    return r
+@matcher(Nil)
+def tail_length(self,acc):
+    return acc
+@matcher(Cons)
+def tail_length(self,acc):
+    return self.tl.tail_length(acc+1)
+def length(lst):
+    return force ( lst.tail_length (0) )
+@matcher(Nil)
+def tail_toPylist(self,acc):
+    return acc
+@matcher(Cons)
+def tail_toPylist(self,acc):
+    return self.tl.tail_toPylist ( [self.hd]+acc )
+def toPylist(lst):
+    return force( reverse(lst).tail_toPylist( [] ) ) 
+@Tail
+def tail_toList(lst,acc):
+    if lst == []:
+        return acc
+    return tail_toList(lst[1:],Cons(lst[0],acc))
+def toList(lst):
+    lst = list(reversed(lst))
+    return force ( tail_toList(lst,nil) )
+#print isinstance(Cons(1,nil),List)
+#tmp = toList([1,2,3])
+#print tmp
+#tmp2 = force(tail_toPylist(tmp,[]))
+#print tmp2
+#print force(tmp.rev())
+#print reverse(tmp)
+#print tmp
+#print ( tmp + tmp )
+#print Map(lambda x:x+1,(tmp+tmp))
+#print Map(lambda x:x+1,nil)
+def mret(v):
+    def curry_ret(inp):
+        return Cons((v,inp),nil)
+    return curry_ret
+def zero(inp):
+    return nil
+def uncurry(f):
+    return lambda a,b:f(a)(b)
 
-@TypeCheck(result=mlist,s1=mlist,s2=mlist)
-def mlist_extend(s1,s2):
-    if s1.empty():
-        return s2
-    if s2.empty():
-        return s1
-    return mlist(s1.head,mlist_extend(s1.tail,s2))
-
-
-def succeed(v):
-    @TypeCheck(result=Parser,inp=mlist)
-    def curry_succeed(inp):
-        return Parser(v,inp)
-    return curry_succeed
-
-fail_flag = empty_m
-@TypeCheck(result=Parser,inp=mlist)
-def fail(inp):
-    return succeed(fail_flag)(inp)
-
+def bind(p,f):
+    def cbind(inp):
+        temp = p(inp)
+        func = uncurry(f)
+        #print "temp:",temp,f,func
+        #reverse ( force( Concat (Map(func,temp) , nil) ) )
+        return Concat( Map(func,temp) )
+    return cbind
 def sat(p):
-    #p :: * -> bool
-    @TypeCheck(result=Parser,inp=mlist)
-    def curry_sat(inp):
-        if inp.empty():
-            return fail(inp)
+    @matcher(Nil,False)
+    def csat(self,p):
+        #print "Nil csat"
+        return zero( nil )
+    @matcher(Cons,False)
+    def csat(self,p):
+        if p(self.hd):
+            return mret ( self.hd )(self.tl)
         else:
-            x,xs = inp
-            if p(x):
-                return succeed(mlist(x,empty_m))(xs)
-            else:
-                return fail(xs)
-    return curry_sat
+            return zero( self.tl )
+    def currysat(inp):
+        return inp.csat(p)
+    return currysat
+#print sat(lambda x:x=='a')(toList('abc'))
+def char(c):
+    return sat(lambda x:c==x)
+@matcher(Nil,False)
+def string(self):
+    return mret ( nil )
+@matcher(Cons,False)
+def string(self):
+    return bind(char(self.hd),lambda _:
+            bind(self.tl.string(),lambda _:
+            mret ( Cons(self.hd,self.tl) )))
+def alt(p):
+    def calt(q):
+        def ccalt(inp):
+            t1 = p(inp)
+            t2 = q(inp)
+            return t1 + t2
+        return ccalt
+    return calt
+def seq(p):
+    def cseq(q):
+        return bind(p,lambda v: 
+               bind(q,lambda w:
+                mret ( (v,w) ) ))
+    return cseq
 
-def literal(c):
-    @TypeCheck(result=bool,a=object)
-    def curry_eq_p(a):
-        return a==c
-    return sat(curry_eq_p)
-@Infix
-def alt(p1,p2):
-    @TypeCheck(result=Parser,inp=mlist)
-    def curry_alt(inp):
-        r,rest = p1(inp) # p1(inp) :: parser
-        #print  isinstance(p1(inp)),parser)
-        if r!=fail_flag: # r.empty() ? 
-            return succeed(r)(rest) # succeed(r)(rest) :: parser
-        return p2(inp)
-    return curry_alt
-
-@Infix
-def then(p1,p2):
-    # p1 p2 :: literal(xxx)
-    @TypeCheck(result=Parser,inp=mlist)    
-    def curry_then(inp):
-        r,rs = p1(inp)
-        if r!=fail_flag:# r.empty?
-            r1,rs1 = p2(rs)
-            if r1!=fail_flag:
-                #print "r:",r,r1
-                res = mlist_extend(r,r1)
-                #print "res:",res
-                return succeed(res)(rs1)
-        return fail(inp)
-    return curry_then
-@Infix
-def using(p,f):
-    @TypeCheck(result=Parser,inp=mlist)
-    def curry_using(inp):
-        tmp = p(inp)
-        r = f(tmp)
-        return r
-    return curry_using
-def cons(pc):
-    r,rs = pc
-    if r == fail_flag:
-        return fail(rs) # pc is fail
-    else:
-        # this cons is construct string not construct list
-        #r = mlist(''.join(~r),empty_m)
-        return succeed(r)(rs)
 def many(p):
-    @TypeCheck(result=Parser,inp=mlist)    
-    def curry_many(inp):
-        return (
-            ( (p |then| many(p) ) |using| cons )
-            |alt|
-            succeed( mlist(None,None) ) # why not fail
-        )(inp) # if l_p(inp) |then| many(l_p)  fail then succeed
-    return curry_many
+    return alt(bind(p,lambda x:
+                bind(many(p),lambda xs:
+                     mret(Cons(x,xs))  )))(mret(nil))
+def many1(p):
+    return bind(p,lambda x:
+            bind(many(p),lambda xs: mret(Cons(x,xs)) ))
+def sepby1(p):
+    def csepby1(sep):
+        temp = many (bind(sep,lambda _ : 
+                      bind(p, lambda y : mret (y) )))
+        return bind (p,lambda x : 
+                bind(temp,lambda xs: mret ( Cons(x,xs) ) ))
+    return csepby1
+def sepby(p):
+    def csepby(sep):
+        return alt (sepby1(p)(sep)) (mret( nil ) )
+    return csepby
+def bracket(open):
+    def cbracket(p):
+        def ccbracket(close):
+            return bind(open,lambda _:
+                    bind(p,lambda x :
+                    bind(close,lambda _:
+                    mret ( x ) )))
+        return ccbracket
+    return cbracket
+def chainl1(p):
+    def cchainl1(op):
+        rest = lambda x : alt(bind(op,lambda f :
+                            bind(p,lambda y :
+                            rest (f (x,y) ) ))) ( mret (x) )
+        return bind(p,rest)
+    return cchainl1
+def chainr1(p):
+    def cchainr1(op):
+        return bind(p,lambda x:
+                alt(bind(op,lambda f : 
+                bind( chainr1(p)(op) ,lambda y :
+                mret ( f(x,y) )) ) ) ( mret(x) ) )
+    return cchainr1
 
-def some(l_p):
-    # l_p like literal 
-    @TypeCheck(result=Parser,inp=mlist)
-    def p(inp):
-        return  ( (l_p |then| many(l_p)) |using| cons )(inp)
-    return p
+def ops(xs):
+    def cops(t):
+        p,op = t
+        return bind(p,lambda _ : mret (op) )
+    return foldr1(uncurry(alt),Map(lambda p,op:bind(p,lambda _:mret(op)),xs))
 
-def string(mlst):
-    # mlst :: mlist
-    @TypeCheck(result=Parser,inp=mlist)
-    def p(inp):
-        if mlst.empty():
-            return succeed( mlist(None,None) )(inp) # why not fail
-        else:
-            x,xs = mlst
-            return (( literal(x) |then| string(xs)) |using| cons )(inp)
-    return p
-#print string(str2mlist("abc"))(str2mlist("abc,def"))
+def chainl( p ):
+    def cchainl(op):
+        def ccchainl(v):
+            return alt( chainl1(p)(op) ) (mret (v) )
+        return ccchainl
+    return cchainl
+def chainr( p ):
+    def cchainr(op):
+        def ccchainr(v):
+            return alt( chainr1(p)(op) ) (mret (v) )
+        return ccchainr
+    return cchainr
+def nat(inp):
+    Op = lambda m,n : 10  *  m + n
+    temp = bind(digit,lambda x : mret ( ord(x) - ord('0') ) )
+    return chainl1 (temp) ( mret (Op) )(inp) 
+digit = sat (lambda x : '0' <= x and x <= '9')
+one = toList("123")
+two = toList("456")
+print nat(one)
+print one + two
+temp = bind(digit,lambda x : mret ( ord(x) - ord('0') ) )
 
-@TypeCheck(result=Parser,pc=Parser)
-def snd(pc):
-    r,rs = pc
-    if r.empty():
-        return pc
-    r = r.tail
-    return succeed(r)(rs)
+lower = sat (lambda x : 'a' <= x and x <= 'z')
+upper = sat (lambda x : 'A' <= x and x <= 'Z')
 
-@Infix
-def xthen(p1,p2):
-    @TypeCheck(result=Parser,inp=mlist)
-    def curry_xthen(inp):
-        return ( (p1 |then| p2) |using| snd )(inp)
-    return curry_xthen
+letter  = alt(lower)(upper)
+alphanum = alt(letter)(digit)
+ident = bind(lower,lambda x : 
+        bind (many(alphanum),
+        lambda xs : mret (Cons(x,xs)) ))
 
-@TypeCheck(result=Parser,pc=Parser)
-def fst(pc):
-    r,rs = pc
-    if r.empty():
-        return pc
-    r = r.head
-    if isinstance(r,mlist):
-        return succeed(r)(rs)
-    else:
-        r = mlist(r,empty_m)
-        return succeed(r)(rs)
+a = char('a')
+q = char(",")
+b = char('b')
+test = toList('abc')
+manya = many(a)(toList('aaab'))
+print sepby1(a)(q)(toList("a,a,a,a"))
+print manya
+print a(test)
+print q(toList(',a'))
+print b(toList('bcd'))
 
-@Infix
-def thenx(p1,p2):
-    @TypeCheck(result=Parser,inp=mlist)
-    def curry_xthen(inp):
-        return ( (p1 |then| p2) |using| fst )(inp)
-    return curry_xthen
+open = char('(')
+close = char(')')
+bt = bracket(open)(a)(close)
+print bt(toList('(a)'))
 
-def unconstruct(mlst):
-    if mlst.empty():
-        return []
-    return [mlst.head] + list(unconstruct(mlst.tail))
+ttt = toList([1,2,3])
+print ttt
+print foldl(lambda a,b:(a,b),0,ttt)
+print foldr(lambda a,b:(a,b),0,ttt)
+print ttt.Tfoldr(lambda a,b:(a,b),0)
+print foldl1(lambda a,b:(a,b),ttt)
+print foldr1(lambda a,b:(a,b),ttt)
 
-def any(p):
-    def curry_any(lst):
-        if lst == [] :
-            return fail
-        else:
-            x,xs = lst[0],lst[1:]
-            return ( p(x) |alt| curry_any(xs) )
-    return curry_any
+addop = sat(lambda x: x == '+')
+subop = sat(lambda x: x == '-')
+test = toList( [(addop,lambda a,b:a+b),(subop,lambda a,b:a-b)] )
 
-def test():
-    t = str2mlist("aabcdef")
-    a = literal('a')
-    print (a|then|a)(t)
-    c= many(a)(t)
-    print "c:",c
-    print "head:",c.head
-    print "tail:",c.tail
-    print (a |xthen| a)(t)
-    print (a |thenx| a)(t)
-    lef = literal("[")
-    rig = literal("]")
-    isdigit = lambda x:'0'<=x<='9'
-    def value(pc):
-        r,rs = pc
-        print "value:",r,rs
-        res = unconstruct(r)
-        res = {"Num":res[0]}
-        return succeed(mlist(res,empty_m))(rs)
-    number = some(sat(isdigit)) |using| value
-    t2 = str2mlist("1234")
-    print number(t2)
-    expr = lef |xthen| number |thenx| rig
-    print expr(str2mlist("[123]"))
-    op_add = literal("+") 
-    plus = (number |thenx| op_add) |then| number
-    plus2 = number |then| (op_add |xthen| number)
-    t3 = str2mlist("12+23")
-    print plus(t3)
-    print plus2(t3)
-    def add(pc):
-        r,rs = pc
-        res = {}
-        res["OP"] = "add"
-        res['args'] = unconstruct(r)
-        return succeed(mlist(res,empty_m))(rs)
+print test
+tempops = ops( test )
+print tempops(toList("+"))
+Int = bind(digit,lambda x : mret(int(x)))
+print chainl1(Int)(tempops)(toList('1+2+3-1'))
+print chainr1(Int)(tempops)(toList('1+2+3-1'))
+data = toList("data").string()
+print data(toList("data"))
 
-    r= (plus |using| add)(t3)
-    print r
-    print a(str2mlist("bbb"))
-    print many(a) (str2mlist('bbb'))
-
-
-    word = some(sat(lambda x:'a'<=x<='z' or 'A'<=x<='Z'))
-    # word <=> w+
-    
-    digit = lambda x:'0'<=x<='9'
-    num = some(sat(digit)) # d+
-    I = str2mlist
-    def string(mlst):
-        def p(inp):
-            if mlst.empty():
-                return succeed( mlist(None,None) )(inp)
-            else:
-                x,xs = mlst
-                return (( literal(x) |then| string(xs)) |using| cons )(inp)
-        return p
-        
-    t = I(" abcd ")
-    print t
-    print word(t)
-    t1 = I(" 1234 ")
-    
-    space = lambda x:x == " "
-    whitespace = some(sat(space))
-    def token(p):
-        def curry_token(inp):
-            return ( whitespace |xthen| p |thenx| whitespace ) (inp)
-        return curry_token
-    number = token(num)
-    symbol  = token(word)
-    print ( number |alt| symbol )(t)
+def spaces(inp):
+    isSpace = lambda x: x == ' ' or x == '\n' or x=='\t'
+    return bind(many1(sat (isSpace) ),lambda _ :
+                mret ( () ) )(inp)
+print spaces(toList(" \t\n"))
+def comment(inp):
+    return bind(string(toList("--")),lambda _:
+            bind(many(sat(lambda x : x!="\n")),lambda _:
+            mret ( () ) ))(inp)
+print comment(toList("-- hello"))

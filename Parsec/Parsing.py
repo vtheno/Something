@@ -6,7 +6,7 @@ def mreturn(v):
 def zero(inp):
     return []
 def uncurry(f):
-    return lambda a,b : f (a)(b)
+    return lambda uncurry_a,uncurry_b : f (uncurry_a)(uncurry_b)
 def concat(lst):
     temp = []
     for i in lst:
@@ -18,6 +18,8 @@ def fmap(func,lst):
         now = lst[0]
         #print now
         try:
+            print func.__code__.co_varnames
+            print "now:",now
             temp.append( func(*now) )
         except Exception,e:
             print e,type(e),e.args
@@ -54,7 +56,10 @@ def seq(p):
         return bind(p)(lambda v: bind(q)(lambda w: mreturn((v,w)) ))
     return seq_
 def many(p):
-    return alt(bind(p)(lambda x:bind(many(p))(lambda xs: mreturn ([x]+xs) )))(mreturn([]))
+    return alt(
+        bind(p)(lambda x:
+        bind(many(p))(lambda xs: mreturn ([x]+xs) )))(
+            mreturn([]))
 def many1(p):
     return bind(p)(lambda x:bind(many(p))(lambda xs: mreturn ([x]+xs) ))
 def sat(p):
@@ -141,6 +146,10 @@ def nat(inp):
 
 isA = sat (lambda x:x=='a') 
 isB = sat (lambda x:x=='b') 
+print bind(isA)(lambda v:mreturn(v))(list('abc'))
+print sepby1(isA)(sat(lambda x:x==' '))(list("a a a"))
+print sepby(isA)(sat(lambda x : x==','))(list('a,a,a'))
+"""
 a   = list("aaab")
 print seq(isA)(isB)(['a','b','c'])
 print many(isA)(a)
@@ -160,3 +169,4 @@ Int = bind(digit)(lambda x : mreturn(int(x)))
 print chainl1(Int)(tempops)(list('1+2+3-1'))
 print chainr1(Int)(tempops)(list('1+2+3-1'))
 print nat(list("123"))
+"""
