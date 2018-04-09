@@ -27,6 +27,17 @@ class Cons(List):
         temp = ','.join ( helper(self) )
         #return "[ {} ,{} ]".format(repr(self.hd),self.tl)
         return "[" + temp + "]"
+@matcher(Nil,False)
+def __eq__(self,a):
+    if isinstance(a,Nil):
+        return True
+@matcher(Cons,False)
+def __eq__(self,a):
+    if isinstance(a,Cons):
+        if a.hd == self.hd:
+            return self.tl == a.tl
+    return False
+
 @matcher(Cons)
 def tail_foldl(self,f,acc):
     return self.tl.tail_foldl(f,f(acc,self.hd))
@@ -81,6 +92,16 @@ def tail_map(self,f,acc):
 def Map(f,LIST):
     lst = reverse(LIST)
     return force(lst.tail_map(f,nil))
+@matcher(Nil)
+def element(self,obj,acc):
+    return acc
+@matcher(Cons)
+def element(self,obj,acc):
+    if self.hd == obj:
+        return True
+    return self.tl.element(obj,acc)
+def elem(obj,lst):
+    return force(element(lst,obj,False))
 @matcher(Nil,False)
 def null(self):
     return True
@@ -113,6 +134,7 @@ def tail_toList(lst,acc):
         return acc
     return tail_toList(lst[1:],Cons(lst[0],acc))
 def toList(lst):
+    #print lst
     lst = list(reversed(lst))
     return force ( tail_toList(lst,nil) )
 #print isinstance(Cons(1,nil),List)
@@ -248,21 +270,29 @@ def nat(inp):
     temp = bind(digit,lambda x : mret ( ord(x) - ord('0') ) )
     return chainl1 (temp) ( mret (Op) )(inp) 
 digit = sat (lambda x : '0' <= x and x <= '9')
+"""
 one = toList("123")
 two = toList("456")
+print "elem:",elem("4",two)
 print nat(one)
 print one + two
-temp = bind(digit,lambda x : mret ( ord(x) - ord('0') ) )
+"""
 
 lower = sat (lambda x : 'a' <= x and x <= 'z')
 upper = sat (lambda x : 'A' <= x and x <= 'Z')
 
 letter  = alt(lower)(upper)
 alphanum = alt(letter)(digit)
+"""
 ident = bind(lower,lambda x : 
         bind (many(alphanum),
         lambda xs : mret (Cons(x,xs)) ))
-
+"""
+ident = bind(letter,lambda x:
+             bind (many(alphanum),lambda xs:
+            mret( Cons(x,xs) ) ) )
+                   
+"""
 a = char('a')
 q = char(",")
 b = char('b')
@@ -299,14 +329,71 @@ print chainl1(Int)(tempops)(toList('1+2+3-1'))
 print chainr1(Int)(tempops)(toList('1+2+3-1'))
 data = toList("data").string()
 print data(toList("data"))
-
+"""
 def spaces(inp):
     isSpace = lambda x: x == ' ' or x == '\n' or x=='\t'
     return bind(many1(sat (isSpace) ),lambda _ :
                 mret ( () ) )(inp)
-print spaces(toList(" \t\n"))
+#print "spaces:",spaces(toList(" \t\n"))
 def comment(inp):
     return bind(string(toList("--")),lambda _:
             bind(many(sat(lambda x : x!="\n")),lambda _:
             mret ( () ) ))(inp)
-print comment(toList("-- hello"))
+#print "comment:",comment(toList("-- hello"))
+def first(p):
+    @matcher(Nil,False)
+    def cfirst(self):
+        return self
+    @matcher(Cons,False)
+    def cfirst(self):
+        return Cons(self.hd,nil)
+    return lambda inp : (p(inp)).cfirst()
+def alt1(p,q):
+    def calt1(inp):
+        return first ( alt(p)(q) )(inp)
+    return calt1
+def junk(inp):# unit Parser 
+    return bind (many ( alt1(spaces,comment) ) ,
+                 lambda _ : mret ( () ) ) (inp)
+#tmp = junk(toList("-- hi -- \n  \n\t"))
+#print length(tmp)
+#for i in toPylist(tmp):
+#    print "tmp:",i
+#print "----------"
+def token(p):#parse
+    return bind(p,lambda v:
+            bind(junk,lambda _ :
+            mret ( v ) ) )
+def parse(p):#token
+    return bind(junk,lambda _ :
+            bind(p,lambda v : mret (v) ))
+natural = token(nat)
+#print natural(toList("1234"))
+def symbol(xs):
+    return token(string(xs))
+#print symbol(toList("data"))(toList("data"))
+def identifier(ks):
+    def h(x):
+        #print x,ks,elem(x,ks),type(x),type(ks)
+        if elem(x,ks):
+            return zero
+        return mret(x)
+    return token( bind(ident,h) )
+
+#data = toList("data")
+#typ = toList("type")
+#datas = toList( [data,typ] )
+#print "elem:",elem(data,datas)
+#print data == data
+#t = identifier(datas)(data)
+#print "data:",t
+#print "len:",length( t )
+def read(e):
+    def cread(input):
+        inp = toList(input)
+        result = e(inp)
+        assert isinstance(result,Cons),"Parse not all: " + repr(result)
+        if isinstance(result.hd[1] ,Nil):
+            return result.hd[0]
+        raise Exception("Parse not all: "+repr(result))
+    return cread

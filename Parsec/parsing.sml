@@ -378,7 +378,8 @@ fun elem x [] = false
 fun identifier (ks:(char list list)) =
     token ( ident >>= (fn x => if elem x ks
 			     then fail
-			     else succeed x))
+			     else succeed x)
+	  )
 datatype Expr = App of Expr * Expr
               | Lam of (char list) *  Expr
 	      | Let of (char list) *  Expr * Expr
@@ -390,7 +391,7 @@ val Eq  = symbol (mread "=")
 val Lm  = symbol (mread "\\")
 val To  = symbol (mread "->")
 fun expr p = (chainl1 atom (succeed (Curry App))) p
-and atom p = (lamp +++ letp +++ var +++ paren) p
+and atom p = (lamp +++ letp +++ var +++ paren) p (* alt( alt (lamp,letp),varp) *)
 and lamp p = 
     (Lm       >>= (fn _ =>
      variable >>= (fn x => 
