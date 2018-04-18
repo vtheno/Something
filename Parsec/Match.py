@@ -8,7 +8,6 @@ def force(g):
     while type(g).__name__ == 'generator':
         g = next(g)
     return g
-
 def setEnv(func,typ,env):
     if func.__name__ not in env.keys():
         env[func.__name__] = {typ.__name__:func}

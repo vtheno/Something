@@ -54,7 +54,8 @@ def Data2s(self):
 def Data2py(self):
     name = toPylist(self.name)
     name = ''.join(name)
-    temp = "{name1} = type({name},(),{env})".format(name1=name,name=repr(name),env="{}")
+    env = "{}"
+    temp = "{name} = type({name1},(),{env})".format(name=name,name1=repr(name),env=env)
     cs = [toPylist(i) for i in self.constructor][0]
     r = ""
     for i in cs:
