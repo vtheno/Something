@@ -3,9 +3,16 @@
 datatype 'a Nat = Zero | Succ of 'a
 Nat = Zero | Succ('a')
 """
-def init0(s,v):
-    s.v = v
-def init1(s): 
+def init0(self,*v):
+    self.index = map(lambda x:"v"+str(x),range(len(v)))
+    for i,n in zip(self.index,v):
+        setattr(self,i,n)
+def repr0(self):
+    tmp = [getattr(self,name) for name in self.index]
+    if tmp:
+        return "{} {}".format(self.__name__,tmp)
+    return "{}".format(self.__name__)
+def init1(self): 
     return 
 class DT(object):
     def __init__(self):
@@ -19,23 +26,14 @@ class DT(object):
         return object.__getattribute__(self,name)
 class Constructor(DT):
     def mktype(self,name):
-        def curry_mktype(typevar=None):
-            if typevar:
-                setattr(self,name,
-                        lambda f:
-                        type(name,(f,),
-                             {"__name__":name,
-                              "__init__":init0,
-                              "__repr__":lambda self:"{} {}".format(self.__name__,self.v)}))
-                return self
-            else:
-                setattr(self,name,
-                        lambda f:
-                        type(name,(f,),
-                             {"__name__":name,
-                              "__init__":init1,
-                              "__repr__":lambda self:self.__name__}))
-                return self
+        def curry_mktype(*typevar):
+            setattr(self,name,
+                    lambda f:
+                    type(name,(f,),
+                         {"__name__":name,
+                          "__init__":init0,
+                          "__repr__":repr0}))
+            return self
         return curry_mktype
     def __or__(self,line):
         return self
@@ -49,18 +47,12 @@ class Constructor(DT):
 class Datatype(DT):
     def mktype(self,name):
         def curry_mktype(typevar=None):
-            if typevar:
-                setattr(self,name,
-                        type(name,(object,),
-                             {"__name__":name,
-                              "__init__":init0,
-                              "__repr__":lambda self:"{} {}".format(self.__name__,self.v)}))
-                return getattr(self,name)
-            else:
-                setattr(self,name,type(name,(object,),{"__name__":name,
-                                                "__init__":init1,
-                                                "__repr__":lambda self:self.__name__}))
-                return getattr(self,name)
+            setattr(self,name,
+                    type(name,(object,),
+                         {"__name__":name,
+                          "__init__":init0,
+                          "__repr__":repr0}))
+            return getattr(self,name)
         return curry_mktype
 
 cs = Constructor()
@@ -82,6 +74,16 @@ def toInt(self):
     return 0
 @matcher(cs.Succ,False)
 def toInt(self):
-    return 1 + self.v.toInt()
+    return 1 + self.v0.toInt()
 print( Succ(zero).toInt() )
 print( dir(dt.Nat) )
+dt.List('a') == cs.Empty() \
+    | cs.Cons('a','b') 
+print cs.Cons(1,cs.Empty())
+@matcher(cs.Empty,False)
+def mlen(self):
+    return 0
+@matcher(cs.Cons,False)
+def mlen(self):
+    return 1 + self.v1.mlen()
+print mlen( cs.Cons(1,cs.Cons(2,cs.Empty())) )
